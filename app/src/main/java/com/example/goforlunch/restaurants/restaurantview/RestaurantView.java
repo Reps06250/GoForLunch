@@ -1,4 +1,4 @@
-package com.example.goforlunch.restaurants.details;
+package com.example.goforlunch.restaurants.restaurantview;
 
 import android.os.Bundle;
 

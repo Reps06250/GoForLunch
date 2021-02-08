@@ -19,9 +19,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.goforlunch.R;
 import com.example.goforlunch.restaurants.RestaurantModel;
-import com.example.goforlunch.restaurants.details.RestaurantView;
 import com.example.goforlunch.restaurants.RestaurantViewModel;
-import com.example.goforlunch.restaurants.listview.ListViewFragment;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -70,19 +68,13 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         restaurantViewModel.getRestaurantMutableLiveData().observe(getViewLifecycleOwner(), new Observer<List<RestaurantModel>>() {
             @Override
             public void onChanged(@Nullable List<RestaurantModel> restaurantsList) {
+                boolean bgmap = gMap != null;
+                boolean blist = restaurantsList != null;
+                Log.e("getRestso", "onchanged" + bgmap + blist);
                 if(gMap != null && restaurantsList != null){
+                    Log.e("getRestso", "condition ok, gMap != null && restaurantsList != null");
                     addMarkers(restaurantsList);
                 }
-            }
-        });
-
-        gMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(Marker m) {
-                Log.e("click", "click");
-                NavHostFragment.findNavController(MapFragment.this)
-                        .navigate(R.id.map_to_details);
-                return  false;
             }
         });
         return rootView;
@@ -110,6 +102,14 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         if(restaurantViewModel.getCameraPosition() != null){
             gMap.moveCamera(CameraUpdateFactory.newCameraPosition(restaurantViewModel.getCameraPosition()));
         }
+        gMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker m) {
+                NavHostFragment.findNavController(MapFragment.this)
+                        .navigate(R.id.map_to_details);
+                return  false;
+            }
+        });
     }
 
     // ---------------------- LOCATION PERMISSION ----------------------
@@ -204,6 +204,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     // ADD RESTAURANTS ON MAP
     public void addMarkers(List<RestaurantModel> restaurantsList) {
+        Log.e("getRestso", "addmarkers");
         gMap.clear();//TODO check si ca reset le listener
         for(RestaurantModel restaurant : restaurantsList){
             MarkerOptions markerOptions = new MarkerOptions();

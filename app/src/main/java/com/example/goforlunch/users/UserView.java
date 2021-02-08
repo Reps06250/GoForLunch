@@ -12,7 +12,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.example.goforlunch.R;
-import com.example.goforlunch.restaurants.RestaurantViewModel;
 
 public class UserView extends Fragment {
 

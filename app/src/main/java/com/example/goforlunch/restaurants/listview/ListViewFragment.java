@@ -40,6 +40,7 @@ public class ListViewFragment extends Fragment implements Adapter.RestaurantRvLi
         restaurantViewModel.getRestaurantMutableLiveData().observe(getViewLifecycleOwner(), new Observer<List<RestaurantModel>>() {
             @Override
             public void onChanged(@Nullable List<RestaurantModel> restaurantsList) {
+                rv.setAdapter(adapter);
                 adapter.notifyDataSetChanged();
             }
         });

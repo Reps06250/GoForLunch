@@ -27,7 +27,6 @@ import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
-import android.util.Log;
 import android.view.MenuInflater;
 
 import android.view.Menu;

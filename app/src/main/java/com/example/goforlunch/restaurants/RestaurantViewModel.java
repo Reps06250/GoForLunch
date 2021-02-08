@@ -12,9 +12,11 @@ import com.example.goforlunch.R;
 import com.example.goforlunch.restaurants.retrofit.NearByApi;
 import com.example.goforlunch.restaurants.retrofit.models.NearByApiResponse;
 import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.AutocompletePrediction;
 import com.google.android.libraries.places.api.model.AutocompleteSessionToken;
@@ -22,16 +24,17 @@ import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.model.RectangularBounds;
 import com.google.android.libraries.places.api.model.TypeFilter;
 import com.google.android.libraries.places.api.net.FetchPlaceRequest;
+import com.google.android.libraries.places.api.net.FetchPlaceResponse;
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
 import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.maps.android.SphericalUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.net.ssl.SSLSession;
 
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -44,18 +47,18 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import static android.content.ContentValues.TAG;
 
 
-public class RestaurantViewModel extends AndroidViewModel {
+public class RestaurantViewModel extends AndroidViewModel implements  GetRestaurantsDetails.Listeners{
 
     private Location lastKnowLocation;
     private CameraPosition cameraPosition;
     private MutableLiveData<List<RestaurantModel>> restaurantsListMutableLiveData;
     private List<RestaurantModel> allRestaurantsList = new ArrayList<>();
-    private List<RestaurantModel> restaurantsList = new ArrayList<>();
     private List<String> idList = new ArrayList<>();
     private final PlacesClient placesClient;
-    private int PROXIMITY_RADIUS = 2500;
+    private int PROXIMITY_RADIUS = 1000;
     private int position;
     private List<RestaurantModel> restaurantsDbList;
+    private GetRestaurantsDetails getRestaurantsDetails;
 
 
 
@@ -65,51 +68,54 @@ public class RestaurantViewModel extends AndroidViewModel {
         // Construct a PlacesClient
         Places.initialize(getApplication().getApplicationContext(),getApplication().getResources().getString(R.string.key));
         placesClient = Places.createClient(getApplication().getApplicationContext());
+        getRestaurantsDetails = new GetRestaurantsDetails(this, placesClient);
     }
 
     // ----------------------------- GET LISTS OF RESTAURANTS ------------------------------
 
     // Get all near resataurants, launch only one time when we get the location
     public void getAllRestaurantsList() {
-        idList.clear();
         Call<NearByApiResponse> call = getApiService().getNearbyPlaces("restaurant", lastKnowLocation.getLatitude() + "," + lastKnowLocation.getLongitude(), PROXIMITY_RADIUS);
         call.enqueue(new Callback<NearByApiResponse>() {
             @Override
             public void onResponse(Call<NearByApiResponse> call, Response<NearByApiResponse> response) {
                 try {
                     for (int i = 0; i < response.body().getResults().size(); i++) {
+                        // create a list with all the restaurants ids
                         idList.add(response.body().getResults().get(i).getPlaceId());
                     }
                 } catch (Exception e) {
                     Log.d("new", "There is an error");
                     e.printStackTrace();
                 }
+                // launch getDetails to have details of all restaurants in the area and add them in a restaurantsList
+                // boolean is use to know if getails is execute from getAllRestaurantsList() or getFiltredRestaurantsList()
                 getDetails(true);
+                Log.e("getRestso", "launck getdetails true " + idList.size() +" ids");
             }
             @Override
             public void onFailure(Call<NearByApiResponse> call, Throwable t) {
                 Log.d("new", t.toString());
                 t.printStackTrace();
-                PROXIMITY_RADIUS += 4000;
             }
         });
     }
 
     public void getFiltredRestaurantsList(String newText) {
+        // launch from main activity with the query text
         idList.clear();
-        restaurantsList.clear();
-        Log.e("filtred", newText);
-        Log.e("filtred", "text size : " + newText.length());
-
+        // text not null, launch the request to filtre with the newText
         if(newText != null && newText.length() != 0){
+            // text not null, launch the request to filtre with the newText
             AutocompleteSessionToken token = AutocompleteSessionToken.newInstance();
             // Create a RectangularBounds object.
+            LatLng center = new LatLng(lastKnowLocation.getLatitude(), lastKnowLocation.getLongitude());
             RectangularBounds bounds = RectangularBounds.newInstance(
-                    new LatLng(lastKnowLocation.getLatitude()-0.01, lastKnowLocation.getLongitude()+0.01),
-                    new LatLng(lastKnowLocation.getLatitude()+0.01, lastKnowLocation.getLongitude()-0.01));
+                    toBounds(center, PROXIMITY_RADIUS).southwest,
+                    toBounds(center, PROXIMITY_RADIUS).northeast);
             FindAutocompletePredictionsRequest request = FindAutocompletePredictionsRequest.builder()
-                    .setLocationBias(bounds)
-                    //.setLocationRestriction(bounds)
+                    //.setLocationBias(bounds)
+                    .setLocationRestriction(bounds)
                     .setOrigin(new LatLng(lastKnowLocation.getLatitude(),lastKnowLocation.getLongitude()))
                     .setTypeFilter(TypeFilter.ESTABLISHMENT)
                     .setSessionToken(token)
@@ -117,102 +123,46 @@ public class RestaurantViewModel extends AndroidViewModel {
                     .build();
 
             placesClient.findAutocompletePredictions(request).addOnSuccessListener((response) -> {
-                Log.e("filtred", "get prediction");
                 int i = 0;
                 for (AutocompletePrediction prediction : response.getAutocompletePredictions()) {
-                    Log.e("filtred", "size = " + response.getAutocompletePredictions().size());
-                    Log.e("filtred", String.valueOf(prediction.getDistanceMeters()) + "m");
-                    if(prediction.getDistanceMeters() <= 25000) {
-                        Log.e("filtred", "add id" + prediction.getPlaceId());
+                    if(prediction.getDistanceMeters() <= PROXIMITY_RADIUS) {
                         idList.add(prediction.getPlaceId());
                     }
                     i++;
-                    Log.e("filtred", "i = " + i);
                     if(i == response.getAutocompletePredictions().size()){
-                        Log.e("filtred", "lanch getdetails with " + idList.size() + " ids");
                         getDetails(false);
+                        Log.e("getRestso", "launch getdetails false");
                     }
                 }
             }).addOnFailureListener((exception) -> {
                 if (exception instanceof ApiException) {
                     ApiException apiException = (ApiException) exception;
-                    Log.e("filtred", "place not found");
                     Log.e(TAG, "Place not found: " + apiException.getStatusCode());
                 }
             });
         }
         else{
-            Log.e("filtred", "new text null ou 0, return all");
+            // newText is null, show all restaurants
             restaurantsListMutableLiveData.postValue(allRestaurantsList);
         }
     }
 
-    public void getDetails(Boolean all){
-        Log.e("filtred", "getdetails");
-        if(idList.isEmpty()){
-            Log.e("filtred", "idlist is empty, restaurantsListMutableLiveData.postValue(restaurantsList) = " + restaurantsList.size() + "items");
-            restaurantsListMutableLiveData.setValue(restaurantsList);
-        }
-        else{
-            AtomicInteger listSize = new AtomicInteger(idList.size());
-            // Specify the fields to return.
-            final List<Place.Field> placeFields = Arrays.asList(Place.Field.ID,
-                    Place.Field.NAME,
-                    Place.Field.TYPES,
-                    Place.Field.ADDRESS,
-                    Place.Field.BUSINESS_STATUS,
-                    Place.Field.LAT_LNG,
-                    Place.Field.OPENING_HOURS,
-                    Place.Field.PHONE_NUMBER,
-                    Place.Field.PHOTO_METADATAS,
-                    Place.Field.PRICE_LEVEL,
-                    Place.Field.RATING,
-                    Place.Field.USER_RATINGS_TOTAL,
-                    Place.Field.WEBSITE_URI);
-            for(String id : idList){
-                FetchPlaceRequest placeRequest = FetchPlaceRequest.newInstance(id, placeFields);
-                placesClient.fetchPlace(placeRequest).addOnSuccessListener((response) -> {
-                    Place place = response.getPlace();
-                    if(all){
-                        allRestaurantsList.add(new RestaurantModel(place.getLatLng(),place.getName(),place.getAddress(), id, null, null));
-                        restaurantsList.add(new RestaurantModel(place.getLatLng(),place.getName(),place.getAddress(), id, null, null));
-                    }
-                    else{
-                        if(place.getTypes().contains(Place.Type.RESTAURANT)){
-                            restaurantsList.add(new RestaurantModel(place.getLatLng(),place.getName(),place.getAddress(), id, null, null));
-                        }
-                    }
-                    listSize.getAndDecrement();
-                    if(listSize.intValue() == 0){
-                        Log.e("filtred", "idlist is NOT empty, restaurantsListMutableLiveData.postValue(restaurantsList) = " + restaurantsList.size() + place.getTypes());
-                        restaurantsListMutableLiveData.postValue(restaurantsList);
-                    }
-                }).addOnFailureListener((exception) -> {
-                    if (exception instanceof ApiException) {
-                        listSize.getAndDecrement();
-                        if(listSize.intValue() == 0){
-                            Log.e("filtred", "exception. idlist is NOT empty, restaurantsListMutableLiveData.postValue(restaurantsList) = " + restaurantsList.size() + "items");
-                            restaurantsListMutableLiveData.postValue(restaurantsList);
-                        }
-                    }
-                });
-//            FetchPlaceRequest placeRequest = FetchPlaceRequest.newInstance(id, placeFields);
-//            Task<FetchPlaceResponse> response = placesClient.fetchPlace(placeRequest);
-//            try {
-//                Tasks.await(response);
-//                if(response.isComplete()){
-//                    Place place= response.getResult().getPlace();
-//                    restaurantsList.add(new Restaurant(place.getLatLng(),place.getName(),place.getAddress()));
-//                }
-//            } catch (ExecutionException e) {
-//                e.printStackTrace();
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
+    public LatLngBounds toBounds(LatLng center, int radiusInMeters) {
+        double distanceFromCenterToCorner = radiusInMeters * Math.sqrt(2.0);
+        LatLng southwestCorner =
+                SphericalUtil.computeOffset(center, distanceFromCenterToCorner, 225.0);
+        LatLng northeastCorner =
+                SphericalUtil.computeOffset(center, distanceFromCenterToCorner, 45.0);
+        return new LatLngBounds(southwestCorner, northeastCorner);
+    }
+
+    private RestaurantModel checkInDbRestaurantsList(String id){
+        for(RestaurantModel restaurant : restaurantsDbList){
+            if(restaurant.getId().equals(id)){
+                return restaurant;
             }
         }
-
-//        restaurantMutableLiveData.postValue(restaurantsList);
+        return null;
     }
 
 
@@ -271,5 +221,19 @@ public class RestaurantViewModel extends AndroidViewModel {
 
     public void setRestaurantsDbList(List<RestaurantModel> restaurantsDbList) {
         this.restaurantsDbList = restaurantsDbList;
+    }
+
+    @Override
+    public void onPostExecute(List<RestaurantModel> restaurantsList, boolean all) {
+        Log.e("getRestso", "postexe");
+        if (all){
+            allRestaurantsList = restaurantsList;
+        }
+        restaurantsListMutableLiveData.postValue(restaurantsList);
+    }
+
+    public void getDetails(boolean all){
+        Log.e("getRestso", "launck getdetails");
+        getRestaurantsDetails.GetDetails(idList, all);
     }
 }
