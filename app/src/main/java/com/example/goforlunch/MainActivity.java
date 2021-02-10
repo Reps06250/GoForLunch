@@ -35,7 +35,7 @@ import android.widget.Toast;
 import java.util.Arrays;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements GetDbRestaurantsList.Listeners{
+public class MainActivity extends AppCompatActivity{
 
     private static final int RC_SIGN_IN = 123;
     private static RestaurantViewModel restaurantViewModel;
@@ -46,11 +46,10 @@ public class MainActivity extends AppCompatActivity implements GetDbRestaurantsL
         restaurantViewModel = new ViewModelProvider(this).get(RestaurantViewModel.class);
         setContentView(R.layout.activity_main);
         BottomNavigationView navView = findViewById(R.id.nav_view);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         //startSignInActivity();
-        new GetDbRestaurantsList(this).execute();
 
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_notifications)
@@ -143,16 +142,6 @@ public class MainActivity extends AppCompatActivity implements GetDbRestaurantsL
     }
 
     protected OnFailureListener onFailureListener(){
-        return new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                Toast.makeText(getApplicationContext(), getString(R.string.error_unknown_error), Toast.LENGTH_LONG).show();
-            }
-        };
-    }
-
-    @Override
-    public void onPostExecute(List<RestaurantModel> dbRestaurantsList) {
-        restaurantViewModel.setRestaurantsDbList(dbRestaurantsList);
+        return e -> Toast.makeText(getApplicationContext(), getString(R.string.error_unknown_error), Toast.LENGTH_LONG).show();
     }
 }
