@@ -1,4 +1,4 @@
-package com.example.goforlunch.restaurants;
+package com.example.goforlunch.restaurants.tools;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -8,7 +8,6 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 
-import java.util.Date;
 import java.util.List;
 
 public class RestaurantHelper {

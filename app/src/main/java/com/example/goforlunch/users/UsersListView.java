@@ -19,7 +19,7 @@ import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-public class UserListFragment extends Fragment {
+public class UsersListView extends Fragment {
 
     private UserListViewModel userListViewModel;
     private FirebaseFirestore firebaseFirestore;

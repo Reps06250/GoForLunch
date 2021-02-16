@@ -1,4 +1,4 @@
-package com.example.goforlunch.restaurants.listview;
+package com.example.goforlunch.restaurants.views;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -15,12 +15,16 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.goforlunch.R;
-import com.example.goforlunch.restaurants.RestaurantModel;
+import com.example.goforlunch.eventbus.MyEventBus;
+import com.example.goforlunch.restaurants.tools.ListViewAdapter;
+import com.example.goforlunch.restaurants.tools.RestaurantModel;
 import com.example.goforlunch.restaurants.RestaurantViewModel;
 
 import java.util.List;
 
-public class ListViewFragment extends Fragment implements Adapter.RestaurantRvListener {
+import de.greenrobot.event.EventBus;
+
+public class ListView extends Fragment implements ListViewAdapter.RestaurantRvListener {
 
     private RestaurantViewModel restaurantViewModel;
     private List<RestaurantModel> restaurantsList;
@@ -33,7 +37,7 @@ public class ListViewFragment extends Fragment implements Adapter.RestaurantRvLi
 
         restaurantsList = restaurantViewModel.getRestaurantMutableLiveData().getValue();
 
-        Adapter adapter = new Adapter(restaurantsList,this);
+        ListViewAdapter adapter = new ListViewAdapter(restaurantsList,this);
         rv.setAdapter(adapter);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
@@ -49,8 +53,8 @@ public class ListViewFragment extends Fragment implements Adapter.RestaurantRvLi
 
     @Override
     public void onItemClick(int position) {
-        restaurantViewModel.setPosition(position);
-        NavHostFragment.findNavController(ListViewFragment.this)
+        EventBus.getDefault().post(new MyEventBus(restaurantsList.get(position), true));
+        NavHostFragment.findNavController(ListView.this)
                 .navigate(R.id.list_to_details);
     }
 }

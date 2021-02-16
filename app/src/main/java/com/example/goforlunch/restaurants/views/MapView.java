@@ -1,4 +1,4 @@
-package com.example.goforlunch.restaurants.mapview;
+package com.example.goforlunch.restaurants.views;
 
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -18,13 +18,12 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.goforlunch.R;
-import com.example.goforlunch.restaurants.RestaurantModel;
+import com.example.goforlunch.restaurants.tools.RestaurantModel;
 import com.example.goforlunch.restaurants.RestaurantViewModel;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
@@ -34,32 +33,32 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
 import java.util.List;
+import java.util.Objects;
 
-public class MapFragment extends Fragment implements OnMapReadyCallback {
+public class MapView extends Fragment implements OnMapReadyCallback {
 
     private RestaurantViewModel restaurantViewModel;
     private Location lastKnownLocation = null;
-    MapView mMapView;
     private GoogleMap gMap;
     private FusedLocationProviderClient fusedLocationProviderClient;
     private boolean locationPermissionGranted;
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
-    private static final String TAG = MapFragment.class.getSimpleName();
+    private static final String TAG = MapView.class.getSimpleName();
 
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         restaurantViewModel =
                 new ViewModelProvider(requireActivity()).get(RestaurantViewModel.class);
-        View rootView = inflater.inflate(R.layout.fragment_map, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_mapview, container, false);
 
-        // if we already have a location, we will not relaunch the requesst
+        // if we already save a location in viewmodel, we will not relaunch the location request
         lastKnownLocation = restaurantViewModel.getLastKnowLocation();
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getContext());
 
         // Build the map.
-        mMapView = (MapView) rootView.findViewById(R.id.mapView);
+        com.google.android.gms.maps.MapView mMapView = (com.google.android.gms.maps.MapView) rootView.findViewById(R.id.mapView);
         mMapView.onCreate(savedInstanceState);
         mMapView.onResume(); // needed to get the map to display immediately
         mMapView.getMapAsync(this);
@@ -80,36 +79,41 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         return rootView;
     }
 
-    @Override
-    public void onPause() {
-        restaurantViewModel.setCameraPosition(gMap.getCameraPosition());
-        super.onPause();
-    }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         gMap = googleMap;
-        // Find location if we dont have it
+        // lastknowlocation == nuul means its the first connection, so after getting location
+        // (at the end of getDeviceLocation()) we launch the requests in the asynctask GetRestaurantsList,
+        // to get the list of all near restaurants
         if(lastKnownLocation == null){
             getLocationPermission();
             updateLocationUI();
             getDeviceLocation();
         }
         else{
-            addMarkers(restaurantViewModel.getRestaurantMutableLiveData().getValue());
+            //addMarkers(Objects.requireNonNull(restaurantViewModel.getRestaurantMutableLiveData().getValue()));//Todo vérifier que ça ne fasse pas doublon
         }
         // Restore camera position
         if(restaurantViewModel.getCameraPosition() != null){
             gMap.moveCamera(CameraUpdateFactory.newCameraPosition(restaurantViewModel.getCameraPosition()));
         }
+        //markers click listener
         gMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker m) {
-                NavHostFragment.findNavController(MapFragment.this)
+                NavHostFragment.findNavController(MapView.this)
                         .navigate(R.id.map_to_details);
                 return  false;
             }
         });
+    }
+
+    @Override
+    public void onPause() {
+        //save camera position
+        restaurantViewModel.setCameraPosition(gMap.getCameraPosition());
+        super.onPause();
     }
 
     // ---------------------- LOCATION PERMISSION ----------------------
@@ -204,8 +208,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     // ADD RESTAURANTS ON MAP
     public void addMarkers(List<RestaurantModel> restaurantsList) {
-        Log.e("getRestso", "addmarkers");
         gMap.clear();//TODO check si ca reset le listener
+        Log.e("getRestso", "addmarkers " + restaurantsList.size());
         for(RestaurantModel restaurant : restaurantsList){
             MarkerOptions markerOptions = new MarkerOptions();
             markerOptions.position(restaurant.latLng);

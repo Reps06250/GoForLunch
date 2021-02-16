@@ -1,8 +1,8 @@
-package com.example.goforlunch.restaurants.retrofit;
+package com.example.goforlunch.restaurants.tools.retrofit;
 
 
 
-import com.example.goforlunch.restaurants.retrofit.models.NearByApiResponse;
+import com.example.goforlunch.restaurants.tools.retrofit.models.NearByApiResponse;
 
 import retrofit2.Call;
 import retrofit2.http.GET;

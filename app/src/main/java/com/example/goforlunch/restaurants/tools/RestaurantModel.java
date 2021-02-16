@@ -1,4 +1,4 @@
-package com.example.goforlunch.restaurants;
+package com.example.goforlunch.restaurants.tools;
 
 import com.google.android.gms.maps.model.LatLng;
 

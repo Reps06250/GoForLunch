@@ -2,19 +2,27 @@ package com.example.goforlunch.users;
 
 import androidx.annotation.Nullable;
 
+import com.example.goforlunch.restaurants.tools.RestaurantModel;
+
+import java.util.Date;
+
 public class UserModel {
 
     private String uid;
     private String username;
     @Nullable
     private String urlPicture;
+    private String bookingDate;
+    private RestaurantModel restaurant;
 
     public UserModel() { } //needed for firebase
 
-    public UserModel(String uid, String username, String urlPicture) {
+    public UserModel(String uid, String username, String urlPicture, RestaurantModel restaurant, String bookingDate) {
         this.uid = uid;
         this.username = username;
         this.urlPicture = urlPicture;
+        this.bookingDate = bookingDate;
+        this.restaurant = restaurant;
     }
 
     public String getUid() {
@@ -40,5 +48,21 @@ public class UserModel {
 
     public void setUrlPicture(@Nullable String urlPicture) {
         this.urlPicture = urlPicture;
+    }
+
+    public String getBookingDate() {
+        return bookingDate;
+    }
+
+    public void setBookingDate(String bookingDate) {
+        this.bookingDate = bookingDate;
+    }
+
+    public RestaurantModel getRestaurant() {
+        return restaurant;
+    }
+
+    public void setRestaurant(RestaurantModel restaurant) {
+        this.restaurant = restaurant;
     }
 }

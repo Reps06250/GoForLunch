@@ -1,7 +1,6 @@
-package com.example.goforlunch.restaurants.listview;
+package com.example.goforlunch.restaurants.tools;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,16 +10,15 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.goforlunch.R;
-import com.example.goforlunch.restaurants.RestaurantModel;
 
 import java.util.List;
 
-class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
+public class ListViewAdapter extends RecyclerView.Adapter<ListViewAdapter.ViewHolder> {
 
     private List<RestaurantModel> restaurantsList;
     private RestaurantRvListener restaurantRvListener;
 
-    public Adapter(List<RestaurantModel> restaurantModelList, RestaurantRvListener restaurantRvListener){
+    public ListViewAdapter(List<RestaurantModel> restaurantModelList, RestaurantRvListener restaurantRvListener){
         this.restaurantsList = restaurantModelList;
         this.restaurantRvListener = restaurantRvListener;
     }
@@ -66,7 +64,7 @@ class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
         return restaurantsList.size();
     }
 
-    interface RestaurantRvListener{
+    public interface RestaurantRvListener{
         void onItemClick(int position);
     }
 }

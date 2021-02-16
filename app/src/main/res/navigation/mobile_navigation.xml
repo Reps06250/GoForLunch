@@ -3,21 +3,21 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/navigation_home">
+    app:startDestination="@+id/navigation_map">
 
     <fragment
-        android:id="@+id/navigation_home"
-        android:name="com.example.goforlunch.restaurants.mapview.MapFragment"
+        android:id="@+id/navigation_map"
+        android:name="com.example.goforlunch.restaurants.views.MapView"
         android:label="@string/title_map"
-        tools:layout="@layout/fragment_map">
+        tools:layout="@layout/fragment_mapview">
     <action
         android:id="@+id/map_to_details"
         app:destination="@id/fragment_restaurant_view" />
     </fragment>
 
     <fragment
-        android:id="@+id/navigation_dashboard"
-        android:name="com.example.goforlunch.restaurants.listview.ListViewFragment"
+        android:id="@+id/navigation_restaurants_list"
+        android:name="com.example.goforlunch.restaurants.views.ListView"
         android:label="@string/title_list"
         tools:layout="@layout/fragment_listview">
         <action
@@ -26,17 +26,17 @@
     </fragment>
 
     <fragment
-        android:id="@+id/navigation_notifications"
-        android:name="com.example.goforlunch.users.UserListFragment"
-        android:label="@string/title_notifications"
+        android:id="@+id/navigation_users_list"
+        android:name="com.example.goforlunch.users.UsersListView"
+        android:label="@string/users_list"
         tools:layout="@layout/fragment_user_list" >
     </fragment>
 
     <fragment
         android:id="@+id/fragment_restaurant_view"
-        android:name="com.example.goforlunch.restaurants.restaurantview.RestaurantView"
-        android:label="@string/title_notifications"
-        tools:layout="@layout/fragment_user_list" >
+        android:name="com.example.goforlunch.restaurantdetailsview.RestaurantDetails"
+        android:label="@string/users_list"
+        tools:layout="@layout/fragment_restaurant_details_view" >
     </fragment>
 
 </navigation>

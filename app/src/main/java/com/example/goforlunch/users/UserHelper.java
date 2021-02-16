@@ -1,11 +1,14 @@
 package com.example.goforlunch.users;
 
+import com.example.goforlunch.restaurants.tools.RestaurantModel;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
+
+import java.util.Date;
 
 public class UserHelper {
 
@@ -19,8 +22,8 @@ public class UserHelper {
 
     // --- CREATE ---
 
-    public static Task<Void> createUser(String uid, String username, String urlPicture) {
-        UserModel userModelToCreate = new UserModel(uid, username, urlPicture);
+    public static Task<Void> createUser(String uid, String username, String urlPicture, RestaurantModel restaurant, String bookingDate) {
+        UserModel userModelToCreate = new UserModel(uid, username, urlPicture, restaurant, bookingDate);
         return getUsersCollection().document(uid).set(userModelToCreate);
     }
 
@@ -28,6 +31,10 @@ public class UserHelper {
 
     public static Task<DocumentSnapshot> getUser(String uid){
         return getUsersCollection().document(uid).get();
+    }
+
+    public static void getAllUsers(OnCompleteListener<QuerySnapshot> onCompleteListener){
+        getUsersCollection().get().addOnCompleteListener(onCompleteListener);
     }
 
     // --- UPDATE ---
@@ -40,14 +47,17 @@ public class UserHelper {
         return getUsersCollection().document(uid).update("urlPicture", urlPicture);
     }
 
+    public static Task<Void> updateRestaurant(RestaurantModel restaurant, String uid) {
+        return getUsersCollection().document(uid).update("restaurant", restaurant);
+    }
+
+    public static Task<Void> updateDate(String bookingDate, String uid) {
+        return getUsersCollection().document(uid).update("bookingDate", bookingDate);
+    }
+
     // --- DELETE ---
 
     public static Task<Void> deleteUser(String uid) {
         return getUsersCollection().document(uid).delete();
     }
-
-    public static void getAllUsers(OnCompleteListener<QuerySnapshot> onCompleteListener){
-         getUsersCollection().get().addOnCompleteListener(onCompleteListener);
-    }
-
 }
