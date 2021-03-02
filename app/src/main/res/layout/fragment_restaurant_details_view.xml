@@ -3,11 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".restaurantdetailsview.RestaurantDetails"
+    tools:context=".restaurants.views.RestaurantView"
     android:id="@+id/fragment_restaurant_view">
 
     <!-- TODO: Update blank fragment layout -->
     <TextView
+        android:id="@+id/restaurant_view_name"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:text="@string/hello_blank_fragment" />
@@ -18,7 +19,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
         android:src="@drawable/ic_check"
-        android:layout_margin="16dp" />
+        android:layout_margin="16dp"/>
 
 
 </FrameLayout>

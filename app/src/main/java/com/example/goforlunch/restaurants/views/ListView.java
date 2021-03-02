@@ -14,30 +14,30 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.goforlunch.MainActivity;
 import com.example.goforlunch.R;
-import com.example.goforlunch.eventbus.MyEventBus;
 import com.example.goforlunch.restaurants.tools.ListViewAdapter;
 import com.example.goforlunch.restaurants.tools.RestaurantModel;
 import com.example.goforlunch.restaurants.RestaurantViewModel;
 
 import java.util.List;
 
-import de.greenrobot.event.EventBus;
 
 public class ListView extends Fragment implements ListViewAdapter.RestaurantRvListener {
 
-    private RestaurantViewModel restaurantViewModel;
     private List<RestaurantModel> restaurantsList;
+    private ListViewAdapter adapter;
+    private RecyclerView rv;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        restaurantViewModel = new ViewModelProvider(requireActivity()).get(RestaurantViewModel.class);
+        RestaurantViewModel restaurantViewModel = new ViewModelProvider(requireActivity()).get(RestaurantViewModel.class);
         View root = inflater.inflate(R.layout.fragment_listview, container, false);
-        RecyclerView rv = (RecyclerView) root.findViewById(R.id.rv);
+        rv = (RecyclerView) root.findViewById(R.id.rv);
 
         restaurantsList = restaurantViewModel.getRestaurantMutableLiveData().getValue();
 
-        ListViewAdapter adapter = new ListViewAdapter(restaurantsList,this);
+        adapter = new ListViewAdapter(restaurantsList,this);
         rv.setAdapter(adapter);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
 
@@ -53,8 +53,8 @@ public class ListView extends Fragment implements ListViewAdapter.RestaurantRvLi
 
     @Override
     public void onItemClick(int position) {
-        EventBus.getDefault().post(new MyEventBus(restaurantsList.get(position), true));
+        MainActivity.setRestaurant(restaurantsList.get(position));
         NavHostFragment.findNavController(ListView.this)
-                .navigate(R.id.list_to_details);
+                .navigate(R.id.go_to_details);
     }
 }

@@ -17,6 +17,9 @@ public class ListViewAdapter extends RecyclerView.Adapter<ListViewAdapter.ViewHo
 
     private List<RestaurantModel> restaurantsList;
     private RestaurantRvListener restaurantRvListener;
+    public TextView nameTextView;
+    public TextView addressTextView;
+    public TextView timeTableTextView;
 
     public ListViewAdapter(List<RestaurantModel> restaurantModelList, RestaurantRvListener restaurantRvListener){
         this.restaurantsList = restaurantModelList;
@@ -25,12 +28,13 @@ public class ListViewAdapter extends RecyclerView.Adapter<ListViewAdapter.ViewHo
 
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
 
-        public TextView nameTextView;
 
         public ViewHolder(View itemView) {
             super(itemView);
             itemView.setOnClickListener(this);
             nameTextView = (TextView) itemView.findViewById(R.id.restaurant_name);
+            addressTextView = (TextView) itemView.findViewById(R.id.restaurant_address);
+            timeTableTextView = (TextView) itemView.findViewById(R.id.restaurant_timetable);
         }
 
         @Override
@@ -52,10 +56,10 @@ public class ListViewAdapter extends RecyclerView.Adapter<ListViewAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        RestaurantModel restaurantModel = restaurantsList.get(position);
-        // Set item views based on your views and data model
-        TextView textView = holder.nameTextView;
-        textView.setText(restaurantModel.getName());
+        RestaurantModel restaurant = restaurantsList.get(position);
+        nameTextView.setText(restaurant.getName());
+        addressTextView.setText(restaurant.getVicinity());
+        timeTableTextView.setText("todo");
     }
 
     @Override

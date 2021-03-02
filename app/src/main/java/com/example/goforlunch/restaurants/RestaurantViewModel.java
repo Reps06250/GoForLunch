@@ -42,6 +42,7 @@ public class RestaurantViewModel extends AndroidViewModel implements  GetRestaur
 
     // Get search restaurants list
     public void getFiltredRestaurantsList(String newText) {
+        Context context = getApplication().getApplicationContext();
         // boolean asyncTaskOnExecution is use to stop the last asynctask if its running when the text change
         if(asyncTaskOnExecution) {
             getRestaurantsList.cancel(true);
@@ -49,7 +50,7 @@ public class RestaurantViewModel extends AndroidViewModel implements  GetRestaur
         // text not null, launch the request to filtre with the newText
         if(newText != null && newText.length() != 0){
             asyncTaskOnExecution = true;
-            getRestaurantsList = new GetRestaurantsList(this,false, lastKnowLocation,newText, dBRestaurantsList);
+            getRestaurantsList = new GetRestaurantsList(this,false, lastKnowLocation,newText, dBRestaurantsList, context);
             getRestaurantsList.execute();
         }
         else{

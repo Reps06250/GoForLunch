@@ -1,6 +1,9 @@
 package com.example.goforlunch.restaurants.tools;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.libraries.places.api.model.OpeningHours;
+import com.google.android.libraries.places.api.model.PhotoMetadata;
+import com.google.android.libraries.places.api.model.Place;
 
 import java.util.Date;
 import java.util.List;
@@ -12,16 +15,28 @@ public class RestaurantModel {
     public String vicinity;
     public String id;
     public String date;
-    List<String> interstedUsersId;
+    public List<String> interstedUsersId;
+    public List<String> interstedUersName;
+    public OpeningHours openingHours;
+    public String phoneNumber;
+    public List<PhotoMetadata> photoMetadata;
+    public Place.BusinessStatus businessStatus;
 
-    public RestaurantModel(LatLng latLng, String name, String vicinity, String id, String date, List<String> interstedUsersId) {
+    public RestaurantModel(LatLng latLng, String name, String vicinity, String id, OpeningHours openingHours,
+                           String phoneNumber, List<PhotoMetadata> photoMetadatas, Place.BusinessStatus businessStatus, String date, List<String> interstedUsersId, List<String> interstedUsersName) {
         this.latLng = latLng;
         this.name = name;
         this.vicinity = vicinity;
         this.id = id;
         this.date = date;
         this.interstedUsersId = interstedUsersId;
+        this.interstedUersName = interstedUsersName;
+        this.openingHours = openingHours;
+        this.phoneNumber = phoneNumber;
+        this.photoMetadata = photoMetadatas;
+        this.businessStatus = businessStatus;
     }
+
 
     public LatLng getLatLng() {
         return latLng;
@@ -69,5 +84,45 @@ public class RestaurantModel {
 
     public void setInterstedUsersId(List<String> interstedUsersId) {
         this.interstedUsersId = interstedUsersId;
+    }
+
+    public List<String> getInterstedUersName() {
+        return interstedUersName;
+    }
+
+    public void setInterstedUersName(List<String> interstedUersName) {
+        this.interstedUersName = interstedUersName;
+    }
+
+    public OpeningHours getOpeningHours() {
+        return openingHours;
+    }
+
+    public void setOpeningHours(OpeningHours openingHours) {
+        this.openingHours = openingHours;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public List<PhotoMetadata> getPhotoMetadata() {
+        return photoMetadata;
+    }
+
+    public void setPhotoMetadata(List<PhotoMetadata> photoMetadata) {
+        this.photoMetadata = photoMetadata;
+    }
+
+    public Place.BusinessStatus getBusinessStatus() {
+        return businessStatus;
+    }
+
+    public void setBusinessStatus(Place.BusinessStatus businessStatus) {
+        this.businessStatus = businessStatus;
     }
 }

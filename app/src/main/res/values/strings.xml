@@ -24,4 +24,6 @@
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="your_lunch">YOUR LUNCH</string>
     <string name="settings">SETTINGS</string>
+    <string name="notification_title">Your Lunch</string>
+    <string name="default_notification_channel_id">MyChanel</string>
 </resources>

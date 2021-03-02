@@ -11,7 +11,7 @@
         android:label="@string/title_map"
         tools:layout="@layout/fragment_mapview">
     <action
-        android:id="@+id/map_to_details"
+        android:id="@+id/go_to_details"
         app:destination="@id/fragment_restaurant_view" />
     </fragment>
 
@@ -21,7 +21,7 @@
         android:label="@string/title_list"
         tools:layout="@layout/fragment_listview">
         <action
-            android:id="@+id/list_to_details"
+            android:id="@+id/go_to_details"
             app:destination="@id/fragment_restaurant_view" />
     </fragment>
 
@@ -30,11 +30,14 @@
         android:name="com.example.goforlunch.users.UsersListView"
         android:label="@string/users_list"
         tools:layout="@layout/fragment_user_list" >
+        <action
+            android:id="@+id/go_to_details"
+            app:destination="@id/fragment_restaurant_view" />
     </fragment>
 
     <fragment
         android:id="@+id/fragment_restaurant_view"
-        android:name="com.example.goforlunch.restaurantdetailsview.RestaurantDetails"
+        android:name="com.example.goforlunch.restaurants.views.RestaurantView"
         android:label="@string/users_list"
         tools:layout="@layout/fragment_restaurant_details_view" >
     </fragment>

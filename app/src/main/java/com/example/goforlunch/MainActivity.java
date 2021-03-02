@@ -3,66 +3,79 @@ package com.example.goforlunch;
 import android.content.Intent;
 import android.os.Bundle;
 
-import com.example.goforlunch.eventbus.MyEventBus;
 import com.example.goforlunch.restaurants.RestaurantViewModel;
+import com.example.goforlunch.restaurants.tools.RestaurantModel;
+import com.example.goforlunch.restaurants.views.MapView;
+import com.example.goforlunch.restaurants.views.RestaurantView;
 import com.example.goforlunch.users.UserHelper;
+import com.example.goforlunch.users.UserModel;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.ErrorCodes;
 import com.firebase.ui.auth.IdpResponse;
 import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
-import androidx.navigation.NavDestination;
 import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
+import android.util.Log;
 import android.view.MenuInflater;
 
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.util.Arrays;
 import java.util.Objects;
 
-import de.greenrobot.event.EventBus;
-
 public class MainActivity extends AppCompatActivity{
 
     private static final int RC_SIGN_IN = 123;
+    public static UserModel user;
     private static RestaurantViewModel restaurantViewModel;
     private AppBarConfiguration appBarConfiguration;
+    private NavigationView navigationView;
+    private DrawerLayout drawer;
+    private static RestaurantModel mRestaurant;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        startSignInActivity();
+
         restaurantViewModel = new ViewModelProvider(this).get(RestaurantViewModel.class);
         setContentView(R.layout.activity_main);
 
         //TOOLBAR
         Toolbar toolbar = findViewById (R.id.toolbar);
         setSupportActionBar (toolbar);
-//        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled (true);
-//        getSupportActionBar ().setDisplayShowHomeEnabled(true);
 
         //NAVIGATION DRAWER and BOTTOM NAVIGATION
         //je déclare mon navigation drawer et le navigation view
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById ( R.id.navigation_view );
+        drawer = findViewById(R.id.drawer_layout);
+        navigationView = findViewById ( R.id.navigation_view );
         // je configure mon appBar
         appBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.navigation_map, R.id.navigation_restaurants_list, R.id.navigation_users_list)
@@ -70,34 +83,53 @@ public class MainActivity extends AppCompatActivity{
                 .build();
         //je déclare le navcontroller avec le fragment hote
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
-        //je lie mon appbar et mon navcontroller
+        // Configure ma Toolbar pour une utilisation avec le NavController.
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+        // Configure mon NavigationDrawer pour une utilisation avec le NavController.
         NavigationUI.setupWithNavController(navigationView, navController);
-        //getSupportActionBar ().setDisplayHomeAsUpEnabled ( true );
         // je déclare mon bottomNavigation
         BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
-        //je lie mon bottomNavigation et mon navcontroller
+        // Configure mon BottomNavigation pour une utilisation avec le NavController.
         NavigationUI.setupWithNavController(bottomNavigation, navController);
+        drawerClick();
 
         View navView = navigationView.inflateHeaderView ( R.layout.nav_header_main);
 //            NavProfileImage = navView.findViewById ( R.id.nav_profile_image );
 //            NavProfileFullName =  navView.findViewById ( R.id.nav_user_full_name );
 //            NavProfileEmail =  navView.findViewById ( R.id.nav_user_email );
-
-        //Handle visibility of the application bottom navigation
-//            navController.addOnDestinationChangedListener(new NavController.OnDestinationChangedListener() {
-//                @Override
-//                public void onDestinationChanged(@NonNull NavController controller, @NonNull NavDestination destination, @Nullable Bundle arguments) {
-//                    if(destination.getId()== R.id.nav_profile || destination.getId()== R.id.nav_settings
-//                            ||destination.getId()== R.id.nav_feedback || destination.getId()== R.id.nav_friends){
-//                        bottomNavigation.setVisibility(View.GONE);
-//                    }
-//                    else{
-//                        bottomNavigation.setVisibility(View.VISIBLE);
-//                    }
-//                }
-//            });
     }
+
+    private void drawerClick() {
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(MenuItem menuItem) {
+                int id = menuItem.getItemId();
+                if(id == R.id.fragment_restaurant_view) {
+                    mRestaurant = user.getRestaurant();
+                    NavHostFragment.findNavController(getCurrentFragment())
+                            .navigate(R.id.go_to_details);
+                }
+                else if(id == R.id.settings) {
+                }
+                else if(id == R.id.log_out) {
+                    FirebaseAuth.getInstance().signOut();
+                    startSignInActivity();
+                }
+                drawer.closeDrawer(GravityCompat.START);
+                return true;
+            }
+        });
+    }
+
+    public Fragment getCurrentFragment(){
+        for (Fragment fragment : getSupportFragmentManager().getFragments()){
+            if(fragment.isVisible()){
+                return fragment;
+            }
+        }
+        return null;
+    }
+
 
     //This will help to automatically handle the back arrow navigation and also the back button when pressed
     @Override
@@ -105,6 +137,11 @@ public class MainActivity extends AppCompatActivity{
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         return NavigationUI.navigateUp(navController, appBarConfiguration)
                 || super.onSupportNavigateUp();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
     }
 
     //MENU
@@ -117,7 +154,7 @@ public class MainActivity extends AppCompatActivity{
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                invalidateOptionsMenu();
+//                invalidateOptionsMenu(); //todo
                 return false;
             }
             @Override
@@ -130,15 +167,13 @@ public class MainActivity extends AppCompatActivity{
     }
 
 
-
     //     ----------------- LOGIN ---------------------
-    //TODO voir si je peux foutre ca dans une classe a part
     //LAUNCH
     private void startSignInActivity(){
         startActivityForResult(
                 AuthUI.getInstance()
                         .createSignInIntentBuilder()
-                        //.setTheme(R.style.LoginTheme)
+                        .setTheme(R.style.LoginTheme)
                         .setAvailableProviders(
                                 Arrays.asList(new AuthUI.IdpConfig.EmailBuilder().build(),
                                         new AuthUI.IdpConfig.GoogleBuilder().build()))
@@ -157,7 +192,7 @@ public class MainActivity extends AppCompatActivity{
     }
 
     private void showSnackBar(ConstraintLayout constraintLayout, String message){
-        Snackbar.make(constraintLayout, message, Snackbar.LENGTH_SHORT).show();
+//        Snackbar.make(constraintLayout, message, Snackbar.LENGTH_SHORT).show();
     }
 
     private void handleResponseAfterSignIn(int requestCode, int resultCode, Intent data){
@@ -165,7 +200,7 @@ public class MainActivity extends AppCompatActivity{
         ConstraintLayout constraintLayout = findViewById(R.id.container);
         if (requestCode == RC_SIGN_IN) {
             if (resultCode == RESULT_OK) { // SUCCESS
-                showSnackBar(constraintLayout, getString(R.string.connection_succeed));
+//                showSnackBar(constraintLayout, getString(R.string.connection_succeed));
                 createUserInFirestore();
             } else { // ERRORS
                 if (response == null) {
@@ -189,11 +224,32 @@ public class MainActivity extends AppCompatActivity{
             String username = this.getCurrentUser().getDisplayName();
             String uid = this.getCurrentUser().getUid();
             UserHelper.createUser(uid, username, urlPicture, null, null).addOnFailureListener(this.onFailureListener());
+            getCurrentUserModel();
         }
+    }
+
+    void getCurrentUserModel(){
+        Log.e("userrr", "getUser");
+        String userId = Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid();
+        UserHelper.getUser(userId).addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                user = documentSnapshot.toObject(UserModel.class);
+                Log.e("userrr", "getUser success " + user.getUsername());
+            }
+        });
     }
 
     protected OnFailureListener onFailureListener(){
         return e -> Toast.makeText(getApplicationContext(), getString(R.string.error_unknown_error), Toast.LENGTH_LONG).show();
+    }
+
+    public static RestaurantModel getRestaurant() {
+        return mRestaurant;
+    }
+
+    public static void setRestaurant(RestaurantModel restaurant) {
+        mRestaurant = restaurant;
     }
 }
 

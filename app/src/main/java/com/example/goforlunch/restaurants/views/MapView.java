@@ -17,6 +17,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.example.goforlunch.MainActivity;
 import com.example.goforlunch.R;
 import com.example.goforlunch.restaurants.tools.RestaurantModel;
 import com.example.goforlunch.restaurants.RestaurantViewModel;
@@ -67,11 +68,7 @@ public class MapView extends Fragment implements OnMapReadyCallback {
         restaurantViewModel.getRestaurantMutableLiveData().observe(getViewLifecycleOwner(), new Observer<List<RestaurantModel>>() {
             @Override
             public void onChanged(@Nullable List<RestaurantModel> restaurantsList) {
-                boolean bgmap = gMap != null;
-                boolean blist = restaurantsList != null;
-                Log.e("getRestso", "onchanged" + bgmap + blist);
                 if(gMap != null && restaurantsList != null){
-                    Log.e("getRestso", "condition ok, gMap != null && restaurantsList != null");
                     addMarkers(restaurantsList);
                 }
             }
@@ -92,7 +89,7 @@ public class MapView extends Fragment implements OnMapReadyCallback {
             getDeviceLocation();
         }
         else{
-            //addMarkers(Objects.requireNonNull(restaurantViewModel.getRestaurantMutableLiveData().getValue()));//Todo vérifier que ça ne fasse pas doublon
+            addMarkers(Objects.requireNonNull(restaurantViewModel.getRestaurantMutableLiveData().getValue()));
         }
         // Restore camera position
         if(restaurantViewModel.getCameraPosition() != null){
@@ -102,18 +99,24 @@ public class MapView extends Fragment implements OnMapReadyCallback {
         gMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker m) {
+                for( RestaurantModel restaurant : restaurantViewModel.getRestaurantMutableLiveData().getValue()){
+                    if(m.getTitle().equals(restaurant.name + " : " + restaurant.vicinity)){
+                        MainActivity.setRestaurant(restaurant);
+                        break;
+                    }
+                }
                 NavHostFragment.findNavController(MapView.this)
-                        .navigate(R.id.map_to_details);
+                        .navigate(R.id.go_to_details);
                 return  false;
             }
         });
     }
 
     @Override
-    public void onPause() {
+    public void onDestroyView() {
+        super.onDestroyView();
         //save camera position
         restaurantViewModel.setCameraPosition(gMap.getCameraPosition());
-        super.onPause();
     }
 
     // ---------------------- LOCATION PERMISSION ----------------------
@@ -209,7 +212,6 @@ public class MapView extends Fragment implements OnMapReadyCallback {
     // ADD RESTAURANTS ON MAP
     public void addMarkers(List<RestaurantModel> restaurantsList) {
         gMap.clear();//TODO check si ca reset le listener
-        Log.e("getRestso", "addmarkers " + restaurantsList.size());
         for(RestaurantModel restaurant : restaurantsList){
             MarkerOptions markerOptions = new MarkerOptions();
             markerOptions.position(restaurant.latLng);

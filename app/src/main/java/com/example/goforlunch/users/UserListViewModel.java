@@ -7,7 +7,7 @@ import com.google.firebase.firestore.Query;
 
 public class UserListViewModel extends ViewModel {
 
-    Query query;
+    private Query query;
 
     public UserListViewModel() {
         FirebaseFirestore rootRef = FirebaseFirestore.getInstance();

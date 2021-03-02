@@ -13,7 +13,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.android.gms.tasks.Tasks;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.AutocompletePrediction;
 import com.google.android.libraries.places.api.model.AutocompleteSessionToken;
@@ -21,7 +20,6 @@ import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.model.RectangularBounds;
 import com.google.android.libraries.places.api.model.TypeFilter;
 import com.google.android.libraries.places.api.net.FetchPlaceRequest;
-import com.google.android.libraries.places.api.net.FetchPlaceResponse;
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
 import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -31,7 +29,6 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
@@ -52,14 +49,13 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
         void onPostExecute(List<RestaurantModel> restaurantsList, boolean all, List<RestaurantModel> dbRestaurantList);
     }
     private List<RestaurantModel> dbRestaurantList;
-    private PlacesClient placesClient;
+    private final PlacesClient placesClient;
     private boolean all;
     private String newText;
     private final WeakReference<Listeners> callback;
-    private Location lastKnowLocation;
+    private final Location lastKnowLocation;
     private final int PROXIMITY_RADIUS = 1000;
-    private List<RestaurantModel> restaurantsList = new ArrayList<>();
-    private List<String> idList = new ArrayList<>();
+    private List<RestaurantModel>  restaurantsList = new ArrayList<>();
 
 
     public GetRestaurantsList(Listeners callback, Location lastKnowLocation, boolean all, Context context){
@@ -72,13 +68,14 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
         placesClient = Places.createClient(context);
     }
 
-    public GetRestaurantsList(Listeners callback, boolean all, Location lastKnowLocation, String newText, List<RestaurantModel> dbRestaurantList){
+    public GetRestaurantsList(Listeners callback, boolean all, Location lastKnowLocation, String newText, List<RestaurantModel> dbRestaurantList, Context context){
         Log.e("getRestso", "async constructor");
         this.callback = new WeakReference<>(callback);
         this.all = all;
         this.newText = newText;
         this.lastKnowLocation =lastKnowLocation; //Todo vérifier si je peux supprimer la ligne
         this.dbRestaurantList = dbRestaurantList;
+        placesClient = Places.createClient(context);
     }
 
     @Override
@@ -88,7 +85,7 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
             Log.e("getRestso", "back all");
             // all = true, so its the first connection, we need the list of restaurants in db
             // and the list of all near restaurants
-            getAllIdList();
+            RestaurantHelper.getAllRestaurants(new GetRestaurantsInDb());
         }
         else{
             Log.e("getRestso", "back filter");
@@ -121,7 +118,7 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
                 if (querySnapshot != null) {
                     // Get the contact list from the query snapshot
                     dbRestaurantList = querySnapshot.toObjects(RestaurantModel.class);
-                    getDetails();
+                    getAllIdList();
                 }
 
             } else {
@@ -134,6 +131,7 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
     //-------------------- GET ALL THE NEAR RESTAURANTS ID AND CREATE A ID LIST ----------------------------
 
     public List<String> getAllIdList() {
+        List<String> idList = new ArrayList<>();
         Log.e("getRestso", "allId");
         Call<NearByApiResponse> call = getApiService().getNearbyPlaces(
                 "restaurant", lastKnowLocation.getLatitude() + "," + lastKnowLocation.getLongitude(), PROXIMITY_RADIUS);
@@ -145,7 +143,7 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
                         // create a list with all the restaurants ids
                         idList.add(response.body().getResults().get(i).getPlaceId());
                         if(i == response.body().getResults().size()-1){
-                            RestaurantHelper.getAllRestaurants(new GetRestaurantsInDb());
+                            getDetails(idList);
                         }
                         Log.e("getRestso", "idlistsize" + idList.size());
                     }
@@ -190,7 +188,8 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
     // ------------------------ GET ALL THE SEARCH RESTAURANTS ID AND CREATE A ID LIST ----------------------------
 
     public List<String> getFiltredIdList(){
-        idList.clear();
+        List<String> idList = new ArrayList<>();
+//        idList.clear();
         LatLng center = new LatLng(lastKnowLocation.getLatitude(), lastKnowLocation.getLongitude());
         RectangularBounds bounds = RectangularBounds.newInstance(
                 toBounds(center, PROXIMITY_RADIUS).southwest,
@@ -211,7 +210,7 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
                 }
                 idList.add(prediction.getPlaceId());
                 if(idList.size() == response.getAutocompletePredictions().size()){
-                    getDetails();
+                    getDetails(idList);
                 }
                 Log.e("getRestso", "idlistsize" + idList.size());
             }
@@ -235,11 +234,11 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
 
     //-------------------- GET DETAILS OF RESTAURANTS FROM THE ID LIST AND CREATE A RESTAURANTS LIST -------------------------------
 
-    public List<RestaurantModel> getDetails(){
+    public void getDetails(List<String> idList){
         Log.e("getRestso", "getdetails" + idList.size());
         restaurantsList.clear(); //TODO vérifier si je peux le virer
         if(idList.isEmpty()){
-            return restaurantsList;
+            return;
         }
         else {
             // Specify the fields to return.
@@ -257,7 +256,7 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
                     Place.Field.USER_RATINGS_TOTAL,
                     Place.Field.WEBSITE_URI);
             for (String id : idList) {
-                Log.e("getRestso", "getdetails boucle" + idList.size());
+                // first we check if the restaurant is in the db
                 for (RestaurantModel restaurant : dbRestaurantList){
                     if(id.equals(restaurant.getId())){
                         Log.e("getRestso", "check db");
@@ -267,43 +266,32 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
                 }
                 if(isCancelled()){
                     Log.e("getRestso", "details cancel");
-                    return restaurantsList;
+                    return;
                 }
 
                 else{
                     FetchPlaceRequest placeRequest = FetchPlaceRequest.newInstance(id, placeFields);
-                    Task<FetchPlaceResponse> response = placesClient.fetchPlace(placeRequest);
-                    Log.e("getRestso", "getdetails request");
-//                    try {
-//                        Log.e("getRestso", "getdetails try");
-//                        Tasks.await(response);
-                        if (response.isComplete()) {
-                            Log.e("getRestso", "getdetails is complete");
-                            Place place = response.getResult().getPlace();
+                    placesClient.fetchPlace(placeRequest).addOnSuccessListener((response) -> {
+                        Place place = response.getPlace();
                             // if called from nearby we have only restaurants
                             if (all) {
-                                Log.e("getRestso", "getdetails add all");
-                                restaurantsList.add(new RestaurantModel(place.getLatLng(), place.getName(), place.getAddress(), id, null, null));
+                                restaurantsList.add(new RestaurantModel(place.getLatLng(),
+                                        place.getName(), place.getAddress(), id, place.getOpeningHours(), place.getPhoneNumber(), place.getPhotoMetadatas(), place.getBusinessStatus(), null, null, null));
                                 idList.remove(id);
                             }
                             // else check if the establishment is a restaurant
                             else {
                                 if (place.getTypes().contains(Place.Type.RESTAURANT)) {
-                                    Log.e("getRestso", "getdetails add not all");
-                                    restaurantsList.add(new RestaurantModel(place.getLatLng(), place.getName(), place.getAddress(), id, null, null));
-                                    idList.remove(id);
+                                    restaurantsList.add(new RestaurantModel(place.getLatLng(),
+                                            place.getName(), place.getAddress(), id, place.getOpeningHours(), place.getPhoneNumber(), place.getPhotoMetadatas(),place.getBusinessStatus(), null, null, null));                                    idList.remove(id);
                                 }
                             }
                             if(idList.isEmpty()){
                                 onPostExecute(restaurantsList);
                             }
-                        }
-//                    } catch (ExecutionException | InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
+                        });
                 }
             }
         }
-        return restaurantsList;
     }
 }
