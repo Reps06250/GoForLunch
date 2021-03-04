@@ -16,7 +16,11 @@ import androidx.core.app.NotificationCompat;
 import com.example.goforlunch.MainActivity;
 import com.example.goforlunch.R;
 import com.example.goforlunch.restaurants.tools.RestaurantModel;
+import com.example.goforlunch.users.UserHelper;
 import com.example.goforlunch.users.UserModel;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
@@ -24,6 +28,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 public class NotificationsService extends FirebaseMessagingService {
 
@@ -34,14 +39,14 @@ public class NotificationsService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
-        user = MainActivity.user;
+        user = getCurrentUserModel();
         Date date = new Date();
         @SuppressLint("SimpleDateFormat") SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
         String dateString = formatter.format(date);
         if (remoteMessage.getNotification() != null && user.getBookingDate().equals(dateString)) {
             RestaurantModel restaurant = user.getRestaurant();
             String liste;
-            if(restaurant.getInterstedUersName().size() == 1){ liste = "/n Alone :("; }
+            if(restaurant.getInterstedUers().size() == 1){ liste = "/n Alone :("; }
             else{ liste = getCoUsersString(restaurant); }
             String message = "Is in the restaurant : " + restaurant.getName() + ", " + restaurant.getVicinity() + liste;
             this.sendVisualNotification(message);
@@ -51,16 +56,14 @@ public class NotificationsService extends FirebaseMessagingService {
     private String getCoUsersString(RestaurantModel restaurant) {
         String finalString = "/nWith : ";
         int forNoCommaAtFirst = 0;
-        for(String userName : restaurant.getInterstedUersName()){
-            if(!userName.equals(user.getUsername())){
+        for(UserModel interstedUser : restaurant.getInterstedUers()){
                 if(forNoCommaAtFirst == 0){
-                    finalString = finalString + userName;
+                    finalString = finalString + interstedUser.getUsername();
                     forNoCommaAtFirst++;
                 }
                 else{
-                    finalString = finalString + ", " + userName;
+                    finalString = finalString + ", " + interstedUser.getUsername();
                 }
-            }
         }
         return finalString;
     }
@@ -103,5 +106,18 @@ public class NotificationsService extends FirebaseMessagingService {
 
         // 7 - Show notification
         notificationManager.notify(NOTIFICATION_TAG, NOTIFICATION_ID, notificationBuilder.build());
+    }
+
+    private UserModel getCurrentUserModel(){
+        Log.e("userrr", "getUser");
+        String userId = Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid();
+        UserHelper.getUser(userId).addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                user = documentSnapshot.toObject(UserModel.class);
+                Log.e("userrr", "getUser success " + user.getUsername());
+            }
+        });
+        return user;
     }
 }

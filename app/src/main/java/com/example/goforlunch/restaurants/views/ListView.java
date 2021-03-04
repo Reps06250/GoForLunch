@@ -28,22 +28,23 @@ public class ListView extends Fragment implements ListViewAdapter.RestaurantRvLi
     private List<RestaurantModel> restaurantsList;
     private ListViewAdapter adapter;
     private RecyclerView rv;
+    private ListViewAdapter.RestaurantRvListener restaurantRvListener;
+    private RestaurantViewModel restaurantViewModel;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        RestaurantViewModel restaurantViewModel = new ViewModelProvider(requireActivity()).get(RestaurantViewModel.class);
+        restaurantViewModel = new ViewModelProvider(requireActivity()).get(RestaurantViewModel.class);
         View root = inflater.inflate(R.layout.fragment_listview, container, false);
         rv = (RecyclerView) root.findViewById(R.id.rv);
-
+        restaurantRvListener = this;
         restaurantsList = restaurantViewModel.getRestaurantMutableLiveData().getValue();
-
         adapter = new ListViewAdapter(restaurantsList,this);
         rv.setAdapter(adapter);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
-
         restaurantViewModel.getRestaurantMutableLiveData().observe(getViewLifecycleOwner(), new Observer<List<RestaurantModel>>() {
             @Override
             public void onChanged(@Nullable List<RestaurantModel> restaurantsList) {
+                adapter = new ListViewAdapter(restaurantsList,restaurantRvListener);
                 rv.setAdapter(adapter);
                 adapter.notifyDataSetChanged();
             }
@@ -53,7 +54,7 @@ public class ListView extends Fragment implements ListViewAdapter.RestaurantRvLi
 
     @Override
     public void onItemClick(int position) {
-        MainActivity.setRestaurant(restaurantsList.get(position));
+        restaurantViewModel.setRestaurant(restaurantsList.get(position));
         NavHostFragment.findNavController(ListView.this)
                 .navigate(R.id.go_to_details);
     }

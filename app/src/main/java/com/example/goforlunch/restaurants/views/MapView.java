@@ -96,18 +96,31 @@ public class MapView extends Fragment implements OnMapReadyCallback {
             gMap.moveCamera(CameraUpdateFactory.newCameraPosition(restaurantViewModel.getCameraPosition()));
         }
         //markers click listener
-        gMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+//        gMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+//            @Override
+//            public boolean onMarkerClick(Marker m) {
+//                for( RestaurantModel restaurant : restaurantViewModel.getRestaurantMutableLiveData().getValue()){
+//                    if(m.getTitle().equals(restaurant.name + " : " + restaurant.vicinity)){
+//                        MainActivity.setRestaurant(restaurant);
+//                        break;
+//                    }
+//                }
+//                NavHostFragment.findNavController(MapView.this)
+//                        .navigate(R.id.go_to_details);
+//                return  false;
+//            }
+//        });
+        gMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
-            public boolean onMarkerClick(Marker m) {
+            public void onInfoWindowClick(Marker marker) {
                 for( RestaurantModel restaurant : restaurantViewModel.getRestaurantMutableLiveData().getValue()){
-                    if(m.getTitle().equals(restaurant.name + " : " + restaurant.vicinity)){
-                        MainActivity.setRestaurant(restaurant);
+                    if(marker.getTitle().equals(restaurant.name + " : " + restaurant.vicinity)){
+                        restaurantViewModel.setRestaurant(restaurant);
                         break;
                     }
                 }
                 NavHostFragment.findNavController(MapView.this)
                         .navigate(R.id.go_to_details);
-                return  false;
             }
         });
     }

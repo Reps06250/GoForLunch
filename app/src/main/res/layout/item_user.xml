@@ -12,6 +12,7 @@
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:background="@drawable/circular_bordershape"
+        android:layout_marginStart="10dp"
         android:layout_centerVertical="true"
         android:layout_centerHorizontal="true"
         >
@@ -31,9 +32,9 @@
 
         <TextView
             android:id="@+id/user_name"
-            android:textSize="15sp"
+            android:textSize="17sp"
             android:layout_marginStart="10dp"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="12dp"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"

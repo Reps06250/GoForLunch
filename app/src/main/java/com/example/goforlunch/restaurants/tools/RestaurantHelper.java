@@ -1,5 +1,6 @@
 package com.example.goforlunch.restaurants.tools;
 
+import com.example.goforlunch.users.UserModel;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -26,9 +27,9 @@ public class RestaurantHelper {
     // --- CREATE ---
 
     public static Task<Void> createRestaurant(LatLng latLng, String name, String vicinity, String id, OpeningHours openingHours,
-                                              String phoneNumber, List<PhotoMetadata> photoMetadatas, Place.BusinessStatus businessStatus,
-                                              String date, List<String> interstedUsersId, List<String> interstedUsersName) {
-        RestaurantModel restaurantModelToCreate = new RestaurantModel(latLng,name,vicinity,id,openingHours,phoneNumber,photoMetadatas,businessStatus,date,interstedUsersId, interstedUsersName);
+                                              String phoneNumber, List<PhotoMetadata> photoMetadatas, Place.BusinessStatus businessStatus, String date, int star, List<String> knownUsersId, List<UserModel> interstedUsers)
+    {
+        RestaurantModel restaurantModelToCreate = new RestaurantModel(latLng,name,vicinity,id,openingHours,phoneNumber,photoMetadatas,businessStatus,date,star,knownUsersId, interstedUsers);
         return getRestaurantsCollection().document(id).set(restaurantModelToCreate);
     }
 
@@ -47,11 +48,14 @@ public class RestaurantHelper {
     public static Task<Void> updateDate(String date, String id) {
         return getRestaurantsCollection().document(id).update("date", date);
     }
-    public static Task<Void> updateInterstedUsersId(List<String> interestedUsersId, String id) {
-        return getRestaurantsCollection().document(id).update("interested_users_list", interestedUsersId);
+    public static Task<Void> updateKnownUsersId(List<String> knownUsersId, String id) {
+        return getRestaurantsCollection().document(id).update("known_users_id_list", knownUsersId);
     }
-    public static Task<Void> updateInterstedUsersName(List<String> interestedUsersName, String id) {
-        return getRestaurantsCollection().document(id).update("interested_users_name", interestedUsersName);
+    public static Task<Void> updateInterstedUsers(List<UserModel> interestedUsers, String id) {
+        return getRestaurantsCollection().document(id).update("interested_users_list", interestedUsers);
+    }
+    public static Task<Void> updateStars(int stars, String id) {
+        return getRestaurantsCollection().document(id).update("stars", stars);
     }
 
     // --- DELETE ---

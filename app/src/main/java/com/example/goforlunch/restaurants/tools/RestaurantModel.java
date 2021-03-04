@@ -1,5 +1,6 @@
 package com.example.goforlunch.restaurants.tools;
 
+import com.example.goforlunch.users.UserModel;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.libraries.places.api.model.OpeningHours;
 import com.google.android.libraries.places.api.model.PhotoMetadata;
@@ -15,27 +16,31 @@ public class RestaurantModel {
     public String vicinity;
     public String id;
     public String date;
-    public List<String> interstedUsersId;
-    public List<String> interstedUersName;
+    public int stars;
+    public List<String> knownUsersId;
+    public List<UserModel> interstedUers;
     public OpeningHours openingHours;
     public String phoneNumber;
     public List<PhotoMetadata> photoMetadata;
     public Place.BusinessStatus businessStatus;
 
     public RestaurantModel(LatLng latLng, String name, String vicinity, String id, OpeningHours openingHours,
-                           String phoneNumber, List<PhotoMetadata> photoMetadatas, Place.BusinessStatus businessStatus, String date, List<String> interstedUsersId, List<String> interstedUsersName) {
+                           String phoneNumber, List<PhotoMetadata> photoMetadatas, Place.BusinessStatus businessStatus, String date, int stars, List<String> knownUsersId, List<UserModel> interstedUsers) {
         this.latLng = latLng;
         this.name = name;
         this.vicinity = vicinity;
         this.id = id;
         this.date = date;
-        this.interstedUsersId = interstedUsersId;
-        this.interstedUersName = interstedUsersName;
+        this.stars = stars;
+        this.knownUsersId = knownUsersId;
+        this.interstedUers = interstedUsers;
         this.openingHours = openingHours;
         this.phoneNumber = phoneNumber;
         this.photoMetadata = photoMetadatas;
         this.businessStatus = businessStatus;
     }
+
+    public RestaurantModel() {}
 
 
     public LatLng getLatLng() {
@@ -78,20 +83,20 @@ public class RestaurantModel {
         this.date = date;
     }
 
-    public List<String> getInterstedUsersId() {
-        return interstedUsersId;
+    public List<String> getknownUsersId() {
+        return knownUsersId;
     }
 
-    public void setInterstedUsersId(List<String> interstedUsersId) {
-        this.interstedUsersId = interstedUsersId;
+    public void setknownUsersId(List<String> interstedUsersId) {
+        this.knownUsersId = interstedUsersId;
     }
 
-    public List<String> getInterstedUersName() {
-        return interstedUersName;
+    public List<UserModel> getInterstedUers() {
+        return interstedUers;
     }
 
-    public void setInterstedUersName(List<String> interstedUersName) {
-        this.interstedUersName = interstedUersName;
+    public void setInterstedUers(List<UserModel> interstedUersName) {
+        this.interstedUers = interstedUersName;
     }
 
     public OpeningHours getOpeningHours() {
@@ -124,5 +129,13 @@ public class RestaurantModel {
 
     public void setBusinessStatus(Place.BusinessStatus businessStatus) {
         this.businessStatus = businessStatus;
+    }
+
+    public int getStars() {
+        return stars;
+    }
+
+    public void setStars(int stars) {
+        this.stars = stars;
     }
 }

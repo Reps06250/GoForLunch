@@ -276,14 +276,14 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, List<RestaurantMod
                             // if called from nearby we have only restaurants
                             if (all) {
                                 restaurantsList.add(new RestaurantModel(place.getLatLng(),
-                                        place.getName(), place.getAddress(), id, place.getOpeningHours(), place.getPhoneNumber(), place.getPhotoMetadatas(), place.getBusinessStatus(), null, null, null));
+                                        place.getName(), place.getAddress(), id, place.getOpeningHours(), place.getPhoneNumber(), place.getPhotoMetadatas(), place.getBusinessStatus(), null, 0,null, null));
                                 idList.remove(id);
                             }
                             // else check if the establishment is a restaurant
                             else {
                                 if (place.getTypes().contains(Place.Type.RESTAURANT)) {
                                     restaurantsList.add(new RestaurantModel(place.getLatLng(),
-                                            place.getName(), place.getAddress(), id, place.getOpeningHours(), place.getPhoneNumber(), place.getPhotoMetadatas(),place.getBusinessStatus(), null, null, null));                                    idList.remove(id);
+                                            place.getName(), place.getAddress(), id, place.getOpeningHours(), place.getPhoneNumber(), place.getPhotoMetadatas(),place.getBusinessStatus(), null, 0, null, null));                                    idList.remove(id);
                                 }
                             }
                             if(idList.isEmpty()){

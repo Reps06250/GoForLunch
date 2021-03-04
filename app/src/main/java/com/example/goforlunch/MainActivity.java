@@ -58,7 +58,6 @@ public class MainActivity extends AppCompatActivity{
     private AppBarConfiguration appBarConfiguration;
     private NavigationView navigationView;
     private DrawerLayout drawer;
-    private static RestaurantModel mRestaurant;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,7 +104,7 @@ public class MainActivity extends AppCompatActivity{
             public boolean onNavigationItemSelected(MenuItem menuItem) {
                 int id = menuItem.getItemId();
                 if(id == R.id.fragment_restaurant_view) {
-                    mRestaurant = user.getRestaurant();
+                    restaurantViewModel.setRestaurant(user.getRestaurant());
                     NavHostFragment.findNavController(getCurrentFragment())
                             .navigate(R.id.go_to_details);
                 }
@@ -244,12 +243,8 @@ public class MainActivity extends AppCompatActivity{
         return e -> Toast.makeText(getApplicationContext(), getString(R.string.error_unknown_error), Toast.LENGTH_LONG).show();
     }
 
-    public static RestaurantModel getRestaurant() {
-        return mRestaurant;
-    }
-
     public static void setRestaurant(RestaurantModel restaurant) {
-        mRestaurant = restaurant;
+        restaurantViewModel.setRestaurant(restaurant);
     }
 }
 

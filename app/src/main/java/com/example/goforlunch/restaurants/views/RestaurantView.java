@@ -20,12 +20,16 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.goforlunch.MainActivity;
 import com.example.goforlunch.R;
 import com.example.goforlunch.restaurants.RestaurantViewModel;
+import com.example.goforlunch.restaurants.tools.GetCurrentUserModel;
 import com.example.goforlunch.restaurants.tools.RestaurantHelper;
 import com.example.goforlunch.restaurants.tools.RestaurantModel;
 import com.example.goforlunch.users.UserHelper;
 import com.example.goforlunch.users.UserModel;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.libraries.places.api.model.OpeningHours;
+import com.google.android.libraries.places.api.model.PhotoMetadata;
+import com.google.android.libraries.places.api.model.Place;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -47,16 +51,13 @@ public class RestaurantView extends Fragment {
     private String dateString;
     private String userId;
     private UserModel user;
-    private RestaurantViewModel restaurantViewModel;
     private FloatingActionButton fab;
-    private boolean fromList;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        restaurantViewModel =
-                new ViewModelProvider(requireActivity()).get(RestaurantViewModel.class);
-        restaurant = MainActivity.getRestaurant();
+        RestaurantViewModel restaurantViewModel = new ViewModelProvider(requireActivity()).get(RestaurantViewModel.class);
+        restaurant = restaurantViewModel.getRestaurant();
         // create ContextThemeWrapper from the original Activity Context with the custom theme
         final Context contextThemeWrapper = new ContextThemeWrapper(getActivity(), R.style.Theme_GoForLunch_NoActionBar);
         // clone the inflater using the ContextThemeWrapper
@@ -69,11 +70,12 @@ public class RestaurantView extends Fragment {
         user = MainActivity.user;
         userId = user.getUid();
         fab = view.findViewById(R.id.fab);
+        boolean booked = isBookedByThisUser();
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 // If this user dont have already booked this restaurant, click is used to book it
-                if(!isBookedByThisUser()){
+                if(!booked){
                     // if this restaurant is not in the database (so restaurant.getDate() == null)
                     // add the restaurant in db with the user id in the list restaurant.interstedUsersId and the today date
                     if(restaurant.getDate() == null){
@@ -82,12 +84,19 @@ public class RestaurantView extends Fragment {
                     //else (this restaurant is in db)
                     else{
                         // if the date is not the today date, that means this restaurant is in db,
-                        // but the restaurant.InterstedUsersId is obsolete, so we clear it
-                        if(restaurant.getDate() != dateString){restaurant.getInterstedUsersId().clear();}
-                        // then we add the user id in the list, and we update the list and the date in db
-                        restaurant.getInterstedUsersId().add(userId);
-                        RestaurantHelper.updateInterstedUsersId(restaurant.getInterstedUsersId(), restaurant.getId());
-                        RestaurantHelper.updateDate(dateString, restaurant.getId());
+                        // but the restaurant.InterstedUsers is obsolete, so we clear it
+                        if(restaurant.getDate() != dateString){
+                            restaurant.getInterstedUers().clear();
+                            RestaurantHelper.updateDate(dateString, restaurant.getId());
+                        }
+                        // check if this user already know this restaurant, if not we add him to the knownUsesId list
+                        if(!restaurant.getknownUsersId().contains(userId)){
+                            restaurant.getknownUsersId().add(userId);
+                            RestaurantHelper.updateKnownUsersId(restaurant.getknownUsersId(), restaurant.getId());
+                        }
+                        // then we add the user id in the list, and we update the list in db
+                        restaurant.getInterstedUers().add(user);
+                        RestaurantHelper.updateInterstedUsers(restaurant.getInterstedUers(), restaurant.getId());
                     }
                     // anyway we update User informations
                     UserHelper.updateRestaurant(restaurant, userId);
@@ -96,13 +105,13 @@ public class RestaurantView extends Fragment {
                 }
                 // this user has already booked this restaurant, click is used to cancel it
                 else{
-                    restaurant.getInterstedUsersId().remove(userId);
-                    RestaurantHelper.updateInterstedUsersId(restaurant.getInterstedUsersId(), restaurant.getId());
-                    // if InterstedUsersId() is empty that means this restaurant have no more book,
+                    restaurant.getInterstedUers().remove(user);
+                    RestaurantHelper.updateInterstedUsers(restaurant.getInterstedUers(), restaurant.getId());
+                    // if InterstedUsersId() is empty that means this restaurant have no more reservation,
                     // so we have to change the restaurant.date,
                     // or this restaurant will continue to be considered as having effective reservations
                     // but can't be null or it will be considered as missing in the db
-                    if(restaurant.getInterstedUsersId().isEmpty()){
+                    if(restaurant.getInterstedUers().isEmpty()){
                         RestaurantHelper.updateDate("obsolete", restaurant.getId());
                     }
                     UserHelper.updateRestaurant(null, userId);
@@ -147,10 +156,16 @@ public class RestaurantView extends Fragment {
         String name = restaurant.getName();
         String vicinity = restaurant.getVicinity();
         String id = restaurant.getId();
+        OpeningHours openingHours = restaurant.getOpeningHours();
+        String phoneNumber = restaurant.getPhoneNumber();
+        List<PhotoMetadata> photoMetadata = restaurant.getPhotoMetadata();
+        Place.BusinessStatus businessStatus =restaurant.getBusinessStatus();
         String date = dateString;
-        List<String> interstedUsersId = Arrays.asList(userId);
-        List<String> interstedUsersName = Arrays.asList(user.getUsername());
-        RestaurantHelper.createRestaurant(latLng, name, vicinity, id,restaurant.getOpeningHours(),restaurant.getPhoneNumber(),restaurant.getPhotoMetadata(),restaurant.getBusinessStatus(), date, interstedUsersId, interstedUsersName).addOnFailureListener(this.onFailureListener());
+        List<UserModel> interstedUsers = Arrays.asList(user);
+        List<String> knownUsersId = Arrays.asList(user.getUid());
+        int star = 0;
+        RestaurantHelper.createRestaurant(latLng, name, vicinity, id,openingHours,phoneNumber,photoMetadata,businessStatus,
+                date, star, knownUsersId, interstedUsers).addOnFailureListener(this.onFailureListener());
     }
 
     protected OnFailureListener onFailureListener(){
@@ -164,23 +179,16 @@ public class RestaurantView extends Fragment {
 
 
     public boolean isBookedByThisUser(){
-        boolean booked;
         Log.e("userrr", user.getUsername());
-        if(!fromList){
-            Log.e("userrr", "booked !fromlist");
-            booked = true;
-            fab.setImageResource(R.drawable.ic_check);
-        }
-        else if((restaurant.getInterstedUsersId().contains(userId)) && dateString.equals(restaurant.getDate())){
-            Log.e("userrr", "booked else if");
-            booked = true;
-            fab.setImageResource(R.drawable.ic_check);
-        }
-        else{
-            Log.e("userrr", "booked false");
-            booked = false;
+        if(user.getBookingDate() == null || !user.getBookingDate().equals(dateString) || user.getRestaurant() == null || user.getRestaurant() != restaurant){
+            Log.e("userrr", "not booked");
             fab.setImageResource(R.drawable.ic_check_red);
+            return false;
         }
-        return booked;
+        else {
+            Log.e("userrr", "booked");
+            fab.setImageResource(R.drawable.ic_check);
+            return true;
+        }
     }
 }

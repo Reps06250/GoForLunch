@@ -23,6 +23,7 @@ public class RestaurantViewModel extends AndroidViewModel implements  GetRestaur
     private List<RestaurantModel> dBRestaurantsList = new ArrayList<>();
     private GetRestaurantsList getRestaurantsList;
     private boolean asyncTaskOnExecution = false;
+    private RestaurantModel restaurant;
 
     public RestaurantViewModel(@NonNull Application application) {
         super(application);
@@ -97,5 +98,13 @@ public class RestaurantViewModel extends AndroidViewModel implements  GetRestaur
 
     public void setdBRestaurantsList(List<RestaurantModel> dBRestaurantsList) {
         this.dBRestaurantsList = dBRestaurantsList;
+    }
+
+    public RestaurantModel getRestaurant() {
+        return restaurant;
+    }
+
+    public void setRestaurant(RestaurantModel restaurant) {
+        this.restaurant = restaurant;
     }
 }

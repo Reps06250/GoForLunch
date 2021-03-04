@@ -6,7 +6,7 @@ import com.example.goforlunch.restaurants.tools.RestaurantModel;
 
 import java.util.Date;
 
-public class UserModel {
+public class UserModel implements Comparable<UserModel>{
 
     private String uid;
     private String username;
@@ -64,5 +64,10 @@ public class UserModel {
 
     public void setRestaurant(RestaurantModel restaurant) {
         this.restaurant = restaurant;
+    }
+
+    @Override
+    public int compareTo(UserModel o) {
+        return this.getBookingDate().compareTo(o.getBookingDate());
     }
 }
