@@ -1,6 +1,7 @@
 package com.example.goforlunch.restaurants.views;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,10 +15,10 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.goforlunch.MainActivity;
 import com.example.goforlunch.R;
+import com.example.goforlunch.restaurants.models.DbRestaurantModel;
+import com.example.goforlunch.restaurants.models.RestaurantModel;
 import com.example.goforlunch.restaurants.tools.ListViewAdapter;
-import com.example.goforlunch.restaurants.tools.RestaurantModel;
 import com.example.goforlunch.restaurants.RestaurantViewModel;
 
 import java.util.List;
@@ -38,13 +39,14 @@ public class ListView extends Fragment implements ListViewAdapter.RestaurantRvLi
         rv = (RecyclerView) root.findViewById(R.id.rv);
         restaurantRvListener = this;
         restaurantsList = restaurantViewModel.getRestaurantMutableLiveData().getValue();
-        adapter = new ListViewAdapter(restaurantsList,this);
-        rv.setAdapter(adapter);
+//        adapter = new ListViewAdapter(restaurantsList,this);
+//        rv.setAdapter(adapter);
         rv.setLayoutManager(new LinearLayoutManager(getContext()));
         restaurantViewModel.getRestaurantMutableLiveData().observe(getViewLifecycleOwner(), new Observer<List<RestaurantModel>>() {
             @Override
             public void onChanged(@Nullable List<RestaurantModel> restaurantsList) {
-                adapter = new ListViewAdapter(restaurantsList,restaurantRvListener);
+                Log.e("emptyList", "ListViewOnchanged restaurantsList = " + restaurantsList.size());
+                adapter = new ListViewAdapter(restaurantsList,restaurantRvListener, restaurantViewModel.getLastKnowLocation());
                 rv.setAdapter(adapter);
                 adapter.notifyDataSetChanged();
             }

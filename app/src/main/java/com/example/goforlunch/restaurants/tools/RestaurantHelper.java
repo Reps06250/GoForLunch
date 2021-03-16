@@ -1,12 +1,9 @@
 package com.example.goforlunch.restaurants.tools;
 
+import com.example.goforlunch.restaurants.models.DbRestaurantModel;
 import com.example.goforlunch.users.UserModel;
-import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.android.libraries.places.api.model.OpeningHours;
-import com.google.android.libraries.places.api.model.PhotoMetadata;
-import com.google.android.libraries.places.api.model.Place;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -26,11 +23,10 @@ public class RestaurantHelper {
 
     // --- CREATE ---
 
-    public static Task<Void> createRestaurant(LatLng latLng, String name, String vicinity, String id, OpeningHours openingHours,
-                                              String phoneNumber, List<PhotoMetadata> photoMetadatas, Place.BusinessStatus businessStatus, String date, int star, List<String> knownUsersId, List<UserModel> interstedUsers)
+    public static Task<Void> createRestaurant(String id, String date, int star, List<UserModel> interestedUsers)
     {
-        RestaurantModel restaurantModelToCreate = new RestaurantModel(latLng,name,vicinity,id,openingHours,phoneNumber,photoMetadatas,businessStatus,date,star,knownUsersId, interstedUsers);
-        return getRestaurantsCollection().document(id).set(restaurantModelToCreate);
+        DbRestaurantModel dbRestaurantModelToCreate = new DbRestaurantModel(id,date,star,interestedUsers);
+        return getRestaurantsCollection().document(id).set(dbRestaurantModelToCreate);
     }
 
     // --- GET ---
@@ -48,11 +44,9 @@ public class RestaurantHelper {
     public static Task<Void> updateDate(String date, String id) {
         return getRestaurantsCollection().document(id).update("date", date);
     }
-    public static Task<Void> updateKnownUsersId(List<String> knownUsersId, String id) {
-        return getRestaurantsCollection().document(id).update("known_users_id_list", knownUsersId);
-    }
+
     public static Task<Void> updateInterstedUsers(List<UserModel> interestedUsers, String id) {
-        return getRestaurantsCollection().document(id).update("interested_users_list", interestedUsers);
+        return getRestaurantsCollection().document(id).update("interestedUsers", interestedUsers);
     }
     public static Task<Void> updateStars(int stars, String id) {
         return getRestaurantsCollection().document(id).update("stars", stars);

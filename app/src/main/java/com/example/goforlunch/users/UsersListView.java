@@ -9,7 +9,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -21,17 +20,9 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
-import com.example.goforlunch.MainActivity;
 import com.example.goforlunch.R;
-import com.example.goforlunch.restaurants.RestaurantViewModel;
-import com.example.goforlunch.restaurants.tools.ListViewAdapter;
-import com.example.goforlunch.restaurants.tools.RestaurantModel;
-import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
-import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.text.SimpleDateFormat;
@@ -40,12 +31,10 @@ import java.util.Date;
 import java.util.List;
 
 import static android.content.ContentValues.TAG;
-import static com.firebase.ui.auth.AuthUI.getApplicationContext;
 
 public class UsersListView extends Fragment implements UserAdapter.UserRvListener {
 
     private UserListViewModel userListViewModel;
-    private List<UserModel> usersList = null;
     private UserAdapter adapter;
     private View view;
     private RecyclerView userRv;
@@ -57,43 +46,28 @@ public class UsersListView extends Fragment implements UserAdapter.UserRvListene
         userListViewModel = new ViewModelProvider(requireActivity()).get(UserListViewModel.class);
         view = inflater.inflate(R.layout.fragment_user_list, container, false);
         userRv = view.findViewById(R.id.user_rv);
-        Date date = new Date();
-        @SuppressLint("SimpleDateFormat") SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
-        dateString = formatter.format(date);
-        getList();
-
+        dateString = userListViewModel.getDateString();
+        userListViewModel.getUserListMld().observe(getViewLifecycleOwner(), new Observer<List<UserModel>>() {
+            @Override
+            public void onChanged(List<UserModel> userModels) {
+                adapter = new UserAdapter(userModels, userRvListener);
+                userRv.setAdapter(adapter);
+                userRv.setLayoutManager(new LinearLayoutManager(getContext()));
+            }
+        });
         return view;
     }
 
-    private void getList() {
-        UserHelper.getAllUsers(new OnCompleteListener<QuerySnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                if (task.isSuccessful()) {
-                    // Get the query snapshot from the task result
-                    QuerySnapshot querySnapshot = task.getResult();
-                    if (querySnapshot != null) {
-                        // Get the users list from the query snapshot
-                        usersList = querySnapshot.toObjects(UserModel.class);
-                        Collections.sort(usersList);
-                        adapter = new UserAdapter(usersList, userRvListener);
-                        userRv.setAdapter(adapter);
-                        userRv.setLayoutManager(new LinearLayoutManager(getContext()));
-                    }
-                } else {
-                    Log.w(TAG, "Error getting documents: ", task.getException());
-                }
-            }
-        });
-    }
 
     @Override
-    public void onItemClick(int position) {
-        UserModel user = usersList.get(position);
+    public void onItemClick(int position){
+        UserModel user = userListViewModel.getUserListMld().getValue().get(position);
         if(user.getBookingDate() != null && user.getBookingDate().equals(dateString)){
-            MainActivity.setRestaurant(user.getRestaurant());
+            Bundle restaurantId = new Bundle();
+            restaurantId.putString("restaurantId", user.getRestaurantId());
+            Log.e("userView", "restaurant id : " + user.getRestaurantId());
             NavHostFragment.findNavController(this)
-                    .navigate(R.id.go_to_details);
+                    .navigate(R.id.go_to_details, restaurantId);
         }
     }
 }
@@ -142,7 +116,7 @@ public class UsersListView extends Fragment implements UserAdapter.UserRvListene
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             UserModel user = usersList.get(position);
             if(user.getBookingDate() != null && user.getBookingDate().equals(dateString)){
-                nameTextView.setText(user.getUsername() + " is eating in " + user.getRestaurant().getName());
+                nameTextView.setText(user.getUsername() + " is eating in " );
                 nameTextView.setTypeface(null, Typeface.BOLD);
             }
             else{

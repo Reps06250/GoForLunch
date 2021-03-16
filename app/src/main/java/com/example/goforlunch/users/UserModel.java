@@ -2,10 +2,6 @@ package com.example.goforlunch.users;
 
 import androidx.annotation.Nullable;
 
-import com.example.goforlunch.restaurants.tools.RestaurantModel;
-
-import java.util.Date;
-
 public class UserModel implements Comparable<UserModel>{
 
     private String uid;
@@ -13,16 +9,16 @@ public class UserModel implements Comparable<UserModel>{
     @Nullable
     private String urlPicture;
     private String bookingDate;
-    private RestaurantModel restaurant;
+    private String restaurantId;
 
     public UserModel() { } //needed for firebase
 
-    public UserModel(String uid, String username, String urlPicture, RestaurantModel restaurant, String bookingDate) {
+    public UserModel(String uid, String username, String urlPicture, String restaurantId, String bookingDate) {
         this.uid = uid;
         this.username = username;
         this.urlPicture = urlPicture;
         this.bookingDate = bookingDate;
-        this.restaurant = restaurant;
+        this.restaurantId = restaurantId;
     }
 
     public String getUid() {
@@ -58,12 +54,12 @@ public class UserModel implements Comparable<UserModel>{
         this.bookingDate = bookingDate;
     }
 
-    public RestaurantModel getRestaurant() {
-        return restaurant;
+    public String getRestaurantId() {
+        return restaurantId;
     }
 
-    public void setRestaurant(RestaurantModel restaurant) {
-        this.restaurant = restaurant;
+    public void setRestaurantId(String restaurantId) {
+        this.restaurantId = restaurantId;
     }
 
     @Override

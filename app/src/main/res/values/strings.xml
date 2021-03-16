@@ -3,7 +3,8 @@
     <string name="title_map">Map View</string>
     <string name="title_list">List View</string>
     <string name="users_list">Workmates</string>
-    <string name="key">AIzaSyBCV2Ijz4s1L-iD5oNIYnkedASbqqkKujE</string>
+    <string name="oldkey">AIzaSyBCV2Ijz4s1L-iD5oNIYnkedASbqqkKujE</string>
+    <string name="key">AIzaSyAIMJQa6CF9DXI0wpN_KnMgZBvyfS-Xf3Y</string>
     <string name="search_hint">Chercher un restaurantModel</string>
     <string name="connection_succeed">Connection réussie</string>
     <string name="error_authentication_canceled">Connection échouée</string>

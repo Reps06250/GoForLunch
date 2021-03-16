@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".restaurants.views.RestaurantView"
     android:id="@+id/fragment_restaurant_view">
 
@@ -11,7 +12,7 @@
         android:id="@+id/restaurant_view_name"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:text="" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
@@ -19,7 +20,9 @@
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
         android:layout_margin="16dp"
-        android:background="@drawable/ic_check"/>
+        app:tint="@color/teal_200"
+        app:srcCompat="@drawable/ic_check"
+        app:backgroundTint="@color/white"/>
 
 
 </FrameLayout>

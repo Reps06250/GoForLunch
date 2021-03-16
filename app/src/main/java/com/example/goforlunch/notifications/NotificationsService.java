@@ -15,7 +15,9 @@ import androidx.core.app.NotificationCompat;
 
 import com.example.goforlunch.MainActivity;
 import com.example.goforlunch.R;
-import com.example.goforlunch.restaurants.tools.RestaurantModel;
+import com.example.goforlunch.restaurants.models.DbRestaurantModel;
+import com.example.goforlunch.restaurants.models.RestaurantModel;
+import com.example.goforlunch.restaurants.tools.GetRestaurantsList;
 import com.example.goforlunch.users.UserHelper;
 import com.example.goforlunch.users.UserModel;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -25,38 +27,43 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-public class NotificationsService extends FirebaseMessagingService {
+public class NotificationsService extends FirebaseMessagingService implements  GetRestaurantsList.Listeners{
 
-    private final int NOTIFICATION_ID = 007;
-    private final String NOTIFICATION_TAG = "FIREBASE";
     private UserModel user;
 
+    @SuppressLint("WrongThread")
     @Override
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
+        Log.e("notification", "onMessageReceived");
         super.onMessageReceived(remoteMessage);
         user = getCurrentUserModel();
         Date date = new Date();
         @SuppressLint("SimpleDateFormat") SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
         String dateString = formatter.format(date);
         if (remoteMessage.getNotification() != null && user.getBookingDate().equals(dateString)) {
-            RestaurantModel restaurant = user.getRestaurant();
-            String liste;
-            if(restaurant.getInterstedUers().size() == 1){ liste = "/n Alone :("; }
-            else{ liste = getCoUsersString(restaurant); }
-            String message = "Is in the restaurant : " + restaurant.getName() + ", " + restaurant.getVicinity() + liste;
-            this.sendVisualNotification(message);
+            GetRestaurantsList getRestaurantsList = new GetRestaurantsList(this,"notification", user.getRestaurantId(), this);
+            getRestaurantsList.execute();
         }
+    }
+
+    @Override
+    public void onPostExecute(List<RestaurantModel> restaurantsList, String from, List<DbRestaurantModel> dbRestaurantList) {
+        String liste;
+        RestaurantModel restaurant = restaurantsList.get(0);
+        if(restaurant.getInterestedUsers().size() == 1){ liste = "/n Alone :("; }
+        else{ liste = getCoUsersString(restaurant); }
+        String message = "Is in the restaurant : " + restaurant.getPlace().getName() + ", " + restaurant.getPlace().getAddress() + liste;
+        this.sendVisualNotification(message);
     }
 
     private String getCoUsersString(RestaurantModel restaurant) {
         String finalString = "/nWith : ";
         int forNoCommaAtFirst = 0;
-        for(UserModel interstedUser : restaurant.getInterstedUers()){
+        for(UserModel interstedUser : restaurant.getInterestedUsers()){
                 if(forNoCommaAtFirst == 0){
                     finalString = finalString + interstedUser.getUsername();
                     forNoCommaAtFirst++;
@@ -70,19 +77,18 @@ public class NotificationsService extends FirebaseMessagingService {
 
     private void sendVisualNotification(String messageBody) {
 
-        // 1 - Create an Intent that will be shown when user will click on the Notification
         Intent intent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT);
 
-        // 2 - Create a Style for the Notification
+        // Create a Style for the Notification
         NotificationCompat.InboxStyle inboxStyle = new NotificationCompat.InboxStyle();
         inboxStyle.setBigContentTitle(getString(R.string.notification_title));
         inboxStyle.addLine(messageBody);
 
-        // 3 - Create a Channel (Android 8)
+        // Create a Channel
         String channelId = getString(R.string.default_notification_channel_id);
 
-        // 4 - Build a Notification object
+        // Build a Notification object
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, channelId)
                         .setSmallIcon(R.drawable.ic_restaurant)
@@ -93,10 +99,10 @@ public class NotificationsService extends FirebaseMessagingService {
                         .setContentIntent(pendingIntent)
                         .setStyle(inboxStyle);
 
-        // 5 - Add the Notification to the Notification Manager and show it.
+        // Add the Notification to the Notification Manager and show it.
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-        // 6 - Support Version >= Android 8
+        // Support Version >= Android 8
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence channelName = "Message provenant de Firebase";
             int importance = NotificationManager.IMPORTANCE_HIGH;
@@ -104,20 +110,21 @@ public class NotificationsService extends FirebaseMessagingService {
             notificationManager.createNotificationChannel(mChannel);
         }
 
-        // 7 - Show notification
+        // Show notification
+        String NOTIFICATION_TAG = "FIREBASE";
+        int NOTIFICATION_ID = 007;
         notificationManager.notify(NOTIFICATION_TAG, NOTIFICATION_ID, notificationBuilder.build());
     }
 
     private UserModel getCurrentUserModel(){
-        Log.e("userrr", "getUser");
         String userId = Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid();
         UserHelper.getUser(userId).addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 user = documentSnapshot.toObject(UserModel.class);
-                Log.e("userrr", "getUser success " + user.getUsername());
             }
         });
         return user;
     }
+
 }

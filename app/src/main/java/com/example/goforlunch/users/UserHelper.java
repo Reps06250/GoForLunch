@@ -1,14 +1,13 @@
 package com.example.goforlunch.users;
 
-import com.example.goforlunch.restaurants.tools.RestaurantModel;
+import com.example.goforlunch.restaurants.models.DbRestaurantModel;
+import com.example.goforlunch.restaurants.models.RestaurantModel;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
-
-import java.util.Date;
 
 public class UserHelper {
 
@@ -22,8 +21,8 @@ public class UserHelper {
 
     // --- CREATE ---
 
-    public static Task<Void> createUser(String uid, String username, String urlPicture, RestaurantModel restaurant, String bookingDate) {
-        UserModel userModelToCreate = new UserModel(uid, username, urlPicture, restaurant, bookingDate);
+    public static Task<Void> createUser(String uid, String username, String urlPicture, String restaurantId, String bookingDate) {
+        UserModel userModelToCreate = new UserModel(uid, username, urlPicture, restaurantId, bookingDate);
         return getUsersCollection().document(uid).set(userModelToCreate);
     }
 
@@ -47,8 +46,8 @@ public class UserHelper {
         return getUsersCollection().document(uid).update("urlPicture", urlPicture);
     }
 
-    public static Task<Void> updateRestaurant(RestaurantModel restaurant, String uid) {
-        return getUsersCollection().document(uid).update("restaurant", restaurant);
+    public static Task<Void> updateRestaurantId(String restaurantId, String uid) {
+        return getUsersCollection().document(uid).update("restaurantId", restaurantId);
     }
 
     public static Task<Void> updateDate(String bookingDate, String uid) {

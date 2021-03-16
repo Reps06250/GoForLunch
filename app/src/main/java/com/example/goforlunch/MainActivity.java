@@ -4,22 +4,23 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import com.example.goforlunch.restaurants.RestaurantViewModel;
-import com.example.goforlunch.restaurants.tools.RestaurantModel;
-import com.example.goforlunch.restaurants.views.MapView;
-import com.example.goforlunch.restaurants.views.RestaurantView;
 import com.example.goforlunch.users.UserHelper;
 import com.example.goforlunch.users.UserModel;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.ErrorCodes;
 import com.firebase.ui.auth.IdpResponse;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
@@ -28,8 +29,6 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -45,16 +44,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
-import org.greenrobot.eventbus.EventBus;
-
 import java.util.Arrays;
 import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity{
 
-    private static final int RC_SIGN_IN = 123;
-    public static UserModel user;
-    private static RestaurantViewModel restaurantViewModel;
+    private final int RC_SIGN_IN = 123;
+    public UserModel user;
+    private RestaurantViewModel restaurantViewModel;
     private AppBarConfiguration appBarConfiguration;
     private NavigationView navigationView;
     private DrawerLayout drawer;
@@ -103,8 +100,7 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public boolean onNavigationItemSelected(MenuItem menuItem) {
                 int id = menuItem.getItemId();
-                if(id == R.id.fragment_restaurant_view) {
-                    restaurantViewModel.setRestaurant(user.getRestaurant());
+                if(id == R.id.fragment_restaurant_view && user.getRestaurantId() != null) {
                     NavHostFragment.findNavController(getCurrentFragment())
                             .navigate(R.id.go_to_details);
                 }
@@ -158,6 +154,7 @@ public class MainActivity extends AppCompatActivity{
             }
             @Override
             public boolean onQueryTextChange(String newText) {
+                Log.e("emptyList", "onQueryTextChange " + newText);
                 restaurantViewModel.getFiltredRestaurantsList(newText);
                 return false;
             }
@@ -219,11 +216,26 @@ public class MainActivity extends AppCompatActivity{
 
     private void createUserInFirestore(){ //Todo verifier qu il ne se recrée pas
         if (this.getCurrentUser() != null){
-            String urlPicture = (this.getCurrentUser().getPhotoUrl() != null) ? this.getCurrentUser().getPhotoUrl().toString() : null;
-            String username = this.getCurrentUser().getDisplayName();
-            String uid = this.getCurrentUser().getUid();
-            UserHelper.createUser(uid, username, urlPicture, null, null).addOnFailureListener(this.onFailureListener());
-            getCurrentUserModel();
+            DocumentReference userRef = UserHelper.getUsersCollection().document(this.getCurrentUser().getUid());
+            userRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot document = task.getResult();
+                        if (!document.exists()) {
+                            String urlPicture = (getCurrentUser().getPhotoUrl() != null) ? getCurrentUser().getPhotoUrl().toString() : null;
+                            String username = getCurrentUser().getDisplayName();
+                            String uid = getCurrentUser().getUid();
+                            UserHelper.createUser(uid, username, urlPicture, null, null).addOnFailureListener(onFailureListener());
+                            user = new UserModel(uid, username, urlPicture, null, null);
+                            restaurantViewModel.setUser(user);
+                        }
+                        else{
+                            getCurrentUserModel();
+                        }
+                    }
+                }
+            });
         }
     }
 
@@ -234,6 +246,7 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 user = documentSnapshot.toObject(UserModel.class);
+                restaurantViewModel.setUser(user);
                 Log.e("userrr", "getUser success " + user.getUsername());
             }
         });
@@ -241,10 +254,6 @@ public class MainActivity extends AppCompatActivity{
 
     protected OnFailureListener onFailureListener(){
         return e -> Toast.makeText(getApplicationContext(), getString(R.string.error_unknown_error), Toast.LENGTH_LONG).show();
-    }
-
-    public static void setRestaurant(RestaurantModel restaurant) {
-        restaurantViewModel.setRestaurant(restaurant);
     }
 }
 

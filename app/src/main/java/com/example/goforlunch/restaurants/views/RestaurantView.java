@@ -17,110 +17,60 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.goforlunch.MainActivity;
 import com.example.goforlunch.R;
 import com.example.goforlunch.restaurants.RestaurantViewModel;
-import com.example.goforlunch.restaurants.tools.GetCurrentUserModel;
+import com.example.goforlunch.restaurants.models.DbRestaurantModel;
+import com.example.goforlunch.restaurants.models.RestaurantModel;
+import com.example.goforlunch.restaurants.tools.GetRestaurantsList;
 import com.example.goforlunch.restaurants.tools.RestaurantHelper;
-import com.example.goforlunch.restaurants.tools.RestaurantModel;
 import com.example.goforlunch.users.UserHelper;
 import com.example.goforlunch.users.UserModel;
-import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.libraries.places.api.model.OpeningHours;
-import com.google.android.libraries.places.api.model.PhotoMetadata;
-import com.google.android.libraries.places.api.model.Place;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import static android.content.ContentValues.TAG;
 
 
-
-public class RestaurantView extends Fragment {
+public class RestaurantView extends Fragment implements  GetRestaurantsList.Listeners{
 
     private RestaurantModel restaurant;
     private String dateString;
     private String userId;
     private UserModel user;
     private FloatingActionButton fab;
+    private RestaurantViewModel restaurantViewModel;
+    private TextView nameTv;
+    boolean booked;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        RestaurantViewModel restaurantViewModel = new ViewModelProvider(requireActivity()).get(RestaurantViewModel.class);
-        restaurant = restaurantViewModel.getRestaurant();
+        restaurantViewModel = new ViewModelProvider(requireActivity()).get(RestaurantViewModel.class);
         // create ContextThemeWrapper from the original Activity Context with the custom theme
         final Context contextThemeWrapper = new ContextThemeWrapper(getActivity(), R.style.Theme_GoForLunch_NoActionBar);
         // clone the inflater using the ContextThemeWrapper
         LayoutInflater localInflater = inflater.cloneInContext(contextThemeWrapper);
         View view = localInflater.inflate(R.layout.fragment_restaurant_details_view, container, false);
         fullScreen(false);
-        Date date = new Date();
-        @SuppressLint("SimpleDateFormat") SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
-        dateString = formatter.format(date);
-        user = MainActivity.user;
+        dateString = getDate();
+        user = restaurantViewModel.getUser();
         userId = user.getUid();
         fab = view.findViewById(R.id.fab);
-        boolean booked = isBookedByThisUser();
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                // If this user dont have already booked this restaurant, click is used to book it
-                if(!booked){
-                    // if this restaurant is not in the database (so restaurant.getDate() == null)
-                    // add the restaurant in db with the user id in the list restaurant.interstedUsersId and the today date
-                    if(restaurant.getDate() == null){
-                        addRestaurantInFirestore();
-                    }
-                    //else (this restaurant is in db)
-                    else{
-                        // if the date is not the today date, that means this restaurant is in db,
-                        // but the restaurant.InterstedUsers is obsolete, so we clear it
-                        if(restaurant.getDate() != dateString){
-                            restaurant.getInterstedUers().clear();
-                            RestaurantHelper.updateDate(dateString, restaurant.getId());
-                        }
-                        // check if this user already know this restaurant, if not we add him to the knownUsesId list
-                        if(!restaurant.getknownUsersId().contains(userId)){
-                            restaurant.getknownUsersId().add(userId);
-                            RestaurantHelper.updateKnownUsersId(restaurant.getknownUsersId(), restaurant.getId());
-                        }
-                        // then we add the user id in the list, and we update the list in db
-                        restaurant.getInterstedUers().add(user);
-                        RestaurantHelper.updateInterstedUsers(restaurant.getInterstedUers(), restaurant.getId());
-                    }
-                    // anyway we update User informations
-                    UserHelper.updateRestaurant(restaurant, userId);
-                    UserHelper.updateDate(dateString, userId);
-                    fab.setImageResource(R.drawable.ic_check);
-                }
-                // this user has already booked this restaurant, click is used to cancel it
-                else{
-                    restaurant.getInterstedUers().remove(user);
-                    RestaurantHelper.updateInterstedUsers(restaurant.getInterstedUers(), restaurant.getId());
-                    // if InterstedUsersId() is empty that means this restaurant have no more reservation,
-                    // so we have to change the restaurant.date,
-                    // or this restaurant will continue to be considered as having effective reservations
-                    // but can't be null or it will be considered as missing in the db
-                    if(restaurant.getInterstedUers().isEmpty()){
-                        RestaurantHelper.updateDate("obsolete", restaurant.getId());
-                    }
-                    UserHelper.updateRestaurant(null, userId);
-                    fab.setImageResource(R.drawable.ic_check_red);
-                }
-            }
-        });
-        TextView nameTv = view.findViewById(R.id.restaurant_view_name);
-        nameTv.setText(restaurant.getName());
+        nameTv = view.findViewById(R.id.restaurant_view_name);
+        Bundle argument = getArguments();
+        getRestaurant(argument);
         return view;
     }
 
@@ -128,6 +78,12 @@ public class RestaurantView extends Fragment {
     public void onDestroyView() {
         fullScreen(true);
         super.onDestroyView();
+    }
+
+    private String getDate() {
+        Date date = new Date();
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+        return formatter.format(date);
     }
 
     private void fullScreen(Boolean show) {
@@ -149,23 +105,157 @@ public class RestaurantView extends Fragment {
         }
     }
 
+    private void getRestaurant(Bundle argument){
+        if(argument == null){
+            restaurant = restaurantViewModel.getRestaurant();
+            fabLogic();
+        }
+        else{
+            String placeId = argument.getString("restaurantId", null);
+            GetRestaurantsList getRestaurantsList = new GetRestaurantsList(this,"detailsView", placeId, getContext());
+            getRestaurantsList.execute();
+        }
+    }
+
+    @Override
+    public void onPostExecute(List<RestaurantModel> restaurantsList, String from, List<DbRestaurantModel> dbRestaurantList) {
+        this.restaurant = restaurantsList.get(0);
+        fabLogic();
+    }
+
+    private void fabLogic() {
+        booked = isBookedByThisUser();
+        nameTv.setText(restaurant.getPlace().getName());
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // If this user dont have already booked this restaurant, click is used to book it
+                if(!booked){
+                    checkOldRestaurant();
+                }
+                // this user has already booked this restaurant, click is used to cancel it
+                else{
+                    updateUser();
+                }
+            }
+        });
+    }
+
+    private void checkOldRestaurant() {
+        // check if the user have already book a restaurant for next lunch and if it's the same restaurant of the view
+        if(!(user.getBookingDate() == null) && user.getBookingDate().equals(dateString) &&
+                !user.getRestaurantId().equals(restaurant.getPlace().getId())) {
+                // then refresh data of the old restaurant
+                RestaurantHelper.getRestaurant(user.getRestaurantId()).addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                        DbRestaurantModel lRestaurant = documentSnapshot.toObject(DbRestaurantModel.class);
+                        if(lRestaurant.getInterestedUsers().size() == 1){
+                            RestaurantHelper.updateDate("obsolete", lRestaurant.getId());
+                        }
+                        removeUser(lRestaurant.getInterestedUsers());
+                        RestaurantHelper.updateInterstedUsers(lRestaurant.getInterestedUsers(), lRestaurant.getId());
+                        updateUser();
+                    }
+                });
+
+        }
+        else{
+            updateUser();
+        }
+    }
+
+    private void removeUser(List<UserModel> interestedUsers) {
+        for(UserModel lUser : interestedUsers){
+            if(lUser.getUid().equals(user.getUid())){
+                interestedUsers.remove(lUser);
+            }
+        }
+    }
+
+
+    private void updateUser(){
+        String date;
+        String restaurantId;
+        if(!booked){
+            date = dateString;
+            restaurantId = restaurant.getPlace().getId();
+        }
+        else{
+            date = null;
+            restaurantId = null;
+        }
+        user.setBookingDate(date);
+        user.setRestaurantId(restaurantId);
+        UserHelper.updateDate(date, userId);
+        UserHelper.updateRestaurantId(restaurantId, userId);
+        updateRestaurant();
+    }
+
+    private void updateRestaurant() {
+        if(!booked){
+            // if this restaurant is not in the database (so restaurant.getDate() == null)
+            // add the restaurant in db with the user id in the list restaurant.interstedUsersId and the today date
+            if(restaurant.getDate() == null){
+                restaurant.setInterestedUsers(new ArrayList<>());
+                addRestaurantInFirestore();
+            }
+            //else (this restaurant is in db)
+            else{
+                // if the date is not the today date, that means this restaurant is in db,
+                // but the restaurant.InterstedUsers list is obsolete, so we clear it
+                if(restaurant.getDate() != dateString){
+                    restaurant.getInterestedUsers().clear();
+                    restaurant.setDate(dateString);
+                    RestaurantHelper.updateDate(dateString, restaurant.getPlace().getId());
+                }
+            }
+            // then we add the user in the list, update the list in db and the date
+            restaurant.getInterestedUsers().add(user);
+            fab.setImageResource(R.drawable.ic_baseline);
+            fab.getDrawable().mutate().setTint(getResources().getColor(R.color.red));
+            booked = true;
+        }
+        else{
+            restaurant.getInterestedUsers().remove(user);
+            // if InterstedUsersId() is empty that means this restaurant have no more reservation,
+            // so we have to change the restaurant.date,
+            // or this restaurant will continue to be considered as having effective reservations
+            // but can't be null or it will be considered as missing in the db
+            if(restaurant.getInterestedUsers().isEmpty()){
+                RestaurantHelper.updateDate("obsolete", restaurant.getPlace().getId());
+            }
+            fab.setImageResource(R.drawable.ic_check);
+            fab.getDrawable().mutate().setTint(getResources().getColor(R.color.teal_200));
+            booked = false;
+        }
+        RestaurantHelper.updateInterstedUsers(restaurant.getInterestedUsers(), restaurant.getPlace().getId());
+
+    }
+
+    public boolean isBookedByThisUser(){
+        Log.e("fab", user.getUsername());
+        if(user.getBookingDate() == null || !user.getBookingDate().equals(dateString) ||
+                user.getRestaurantId() == null || !user.getRestaurantId().equals(restaurant.getPlace().getId())){
+            Log.e("fab", "not booked");
+            fab.setImageResource(R.drawable.ic_check);
+            fab.getDrawable().mutate().setTint(getResources().getColor(R.color.teal_200));
+            return false;
+        }
+        else {
+            Log.e("fab", "booked");
+            fab.setImageResource(R.drawable.ic_baseline);
+            fab.getDrawable().mutate().setTint(getResources().getColor(R.color.red));
+            return true;
+        }
+    }
+
+
     // ADD Restaurant IN FIRESTORE DB
 
     private void addRestaurantInFirestore(){
-        LatLng latLng = restaurant.getLatLng();
-        String name = restaurant.getName();
-        String vicinity = restaurant.getVicinity();
-        String id = restaurant.getId();
-        OpeningHours openingHours = restaurant.getOpeningHours();
-        String phoneNumber = restaurant.getPhoneNumber();
-        List<PhotoMetadata> photoMetadata = restaurant.getPhotoMetadata();
-        Place.BusinessStatus businessStatus =restaurant.getBusinessStatus();
-        String date = dateString;
-        List<UserModel> interstedUsers = Arrays.asList(user);
-        List<String> knownUsersId = Arrays.asList(user.getUid());
-        int star = 0;
-        RestaurantHelper.createRestaurant(latLng, name, vicinity, id,openingHours,phoneNumber,photoMetadata,businessStatus,
-                date, star, knownUsersId, interstedUsers).addOnFailureListener(this.onFailureListener());
+        RestaurantHelper.createRestaurant(restaurant.getPlace().getId(),dateString, 0, null)
+                .addOnFailureListener(this.onFailureListener());
     }
 
     protected OnFailureListener onFailureListener(){
@@ -175,20 +265,5 @@ public class RestaurantView extends Fragment {
                 Toast.makeText(getContext(), getString(R.string.error_unknown_error), Toast.LENGTH_LONG).show();
             }
         };
-    }
-
-
-    public boolean isBookedByThisUser(){
-        Log.e("userrr", user.getUsername());
-        if(user.getBookingDate() == null || !user.getBookingDate().equals(dateString) || user.getRestaurant() == null || user.getRestaurant() != restaurant){
-            Log.e("userrr", "not booked");
-            fab.setImageResource(R.drawable.ic_check_red);
-            return false;
-        }
-        else {
-            Log.e("userrr", "booked");
-            fab.setImageResource(R.drawable.ic_check);
-            return true;
-        }
     }
 }
