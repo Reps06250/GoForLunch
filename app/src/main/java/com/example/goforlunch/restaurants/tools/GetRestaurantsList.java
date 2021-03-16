@@ -286,6 +286,7 @@ public class GetRestaurantsList extends AsyncTask<Void, Void, Void>{
                             }
                             if(idList.size() == placeList.size()){
                                 Log.e("userView", "getDetails, getPhoto ");
+                                
                                 getPhoto(placeList);
                             }
                         });
